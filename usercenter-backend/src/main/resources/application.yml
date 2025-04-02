@@ -1,0 +1,43 @@
+server:
+  port: 8083
+  servlet:
+    session:
+      timeout: 86400
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/usercenter_db?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+# MyBatis-Plus配置
+mybatis-plus:
+  mapper-locations: classpath:mappers/*.xml
+  type-aliases-package: com.weiki.usercenterbackend.model.domain
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # 全局逻辑删除的字段名
+      logic-delete-field: isDelete
+      # 逻辑已删除值(1)
+      logic-delete-value: 1
+      # 逻辑未删除值(0)
+      logic-not-delete-value: 0
+
+logging:
+  level:
+    com:
+      weiki:
+        usercenterbackend: debug
+
+# knife4j API文档配置
+knife4j:
+  enable: true
+  # 生产环境可设置为true关闭API文档
+  production: false

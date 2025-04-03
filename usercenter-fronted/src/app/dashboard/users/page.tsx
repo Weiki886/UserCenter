@@ -5,6 +5,7 @@ import { Table, Button, Space, Input, Select, message, Popconfirm, Avatar, Image
 import { SearchOutlined, DeleteOutlined, EditOutlined, UserOutlined } from '@ant-design/icons';
 import { getUserPage, deleteUser, UserType, PageVO } from '@/services/userService';
 import UserEditModal from '@/components/UserEditModal';
+import { formatDateTime } from '@/utils/dateUtils';
 
 const { Option } = Select;
 
@@ -145,6 +146,7 @@ const UserManagement = () => {
       title: '创建时间',
       dataIndex: 'createTime',
       key: 'createTime',
+      render: (createTime: string) => formatDateTime(createTime),
     },
     {
       title: '操作',

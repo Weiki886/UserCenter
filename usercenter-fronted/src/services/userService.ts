@@ -134,14 +134,22 @@ export async function deleteUser(id: number): Promise<boolean> {
  * @param params 
  */
 export async function updateUser(params: UserUpdateParams): Promise<boolean> {
-  const response = await api.post<BaseResponse<boolean>>('/user/update', params);
-  const { code, data, message, description } = response.data;
-  
-  if (code !== 0) {
-    throw new Error(description || message || '更新用户信息失败');
+  try {
+    console.log('Enviando solicitud de actualización:', params);
+    const response = await api.post<BaseResponse<boolean>>('/user/update', params);
+    console.log('Respuesta del servidor:', response.data);
+    const { code, data, message, description } = response.data;
+    
+    if (code !== 0) {
+      console.error('Error al actualizar usuario:', { code, message, description });
+      throw new Error(description || message || '更新用户信息失败');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('Error en la llamada updateUser:', error);
+    throw error;
   }
-  
-  return data;
 }
 
 /**

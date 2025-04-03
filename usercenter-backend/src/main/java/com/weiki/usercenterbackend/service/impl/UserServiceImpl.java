@@ -211,14 +211,26 @@ public class UserServiceImpl implements UserService {
         
         log.info("当前登录用户: {}, 角色: {}", currentUser.getUserAccount(), currentUser.getUserRole());
         
-        // 获取要修改的用户ID - 无论是否是管理员，都只能修改自己的信息
-        Long userId = currentUser.getId();
-        log.info("用户修改自己的信息, ID: {}", userId);
+        // 要修改的用户ID
+        Long userId;
         
-        // 如果请求中包含ID且与当前用户ID不一致，拒绝请求
-        if (updateRequest.getId() != null && !updateRequest.getId().equals(userId)) {
-            log.warn("用户尝试修改他人信息，拒绝请求");
-            throw new BusinessException(ErrorCode.NO_AUTH, "只能修改自己的信息");
+        // 管理员可以修改任何用户信息
+        boolean isAdmin = currentUser.getUserRole() == ADMIN_ROLE;
+        
+        if (isAdmin && updateRequest.getId() != null) {
+            // 如果是管理员且指定了用户ID，则修改指定用户的信息
+            userId = updateRequest.getId();
+            log.info("管理员修改用户信息, 目标用户ID: {}", userId);
+        } else {
+            // 如果不是管理员，或者没有指定用户ID，则只能修改自己的信息
+            userId = currentUser.getId();
+            log.info("用户修改自己的信息, ID: {}", userId);
+            
+            // 如果非管理员尝试修改他人信息，拒绝请求
+            if (updateRequest.getId() != null && !updateRequest.getId().equals(userId)) {
+                log.warn("非管理员用户尝试修改他人信息，拒绝请求");
+                throw new BusinessException(ErrorCode.NO_AUTH, "只能修改自己的信息");
+            }
         }
         
         // 根据ID获取用户
@@ -247,8 +259,8 @@ public class UserServiceImpl implements UserService {
         // 更新用户
         int result = userMapper.updateById(user);
         
-        // 更新session中的用户信息
-        if (result > 0) {
+        // 如果是修改当前登录用户的信息，更新session中的用户信息
+        if (result > 0 && userId.equals(currentUser.getId())) {
             User safetyUser = getSafetyUser(user);
             request.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
         }

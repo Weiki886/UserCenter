@@ -1,9 +1,10 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, Input, Select, message, Popconfirm } from 'antd';
-import { SearchOutlined, DeleteOutlined } from '@ant-design/icons';
+import { Table, Button, Space, Input, Select, message, Popconfirm, Avatar, Image } from 'antd';
+import { SearchOutlined, DeleteOutlined, EditOutlined, UserOutlined } from '@ant-design/icons';
 import { getUserPage, deleteUser, UserType, PageVO } from '@/services/userService';
+import UserEditModal from '@/components/UserEditModal';
 
 const { Option } = Select;
 
@@ -15,6 +16,8 @@ const UserManagement = () => {
   const [pageSize, setPageSize] = useState(10);
   const [userAccount, setUserAccount] = useState('');
   const [userRole, setUserRole] = useState<number | undefined>(undefined);
+  const [editModalVisible, setEditModalVisible] = useState(false);
+  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
 
   const fetchUsers = async () => {
     try {
@@ -59,11 +62,46 @@ const UserManagement = () => {
     }
   };
 
+  const handleEdit = (user: UserType) => {
+    setCurrentUser(user);
+    setEditModalVisible(true);
+  };
+
+  const handleEditSuccess = () => {
+    setEditModalVisible(false);
+    fetchUsers();
+  };
+
   const columns = [
     {
       title: 'ID',
       dataIndex: 'id',
       key: 'id',
+    },
+    {
+      title: '头像',
+      dataIndex: 'avatarUrl',
+      key: 'avatarUrl',
+      render: (avatarUrl: string) => (
+        avatarUrl ? (
+          <Avatar 
+            src={
+              <Image
+                src={avatarUrl}
+                alt="用户头像"
+                style={{ width: 32 }}
+                preview={{
+                  mask: '查看大图'
+                }}
+                onError={() => true} // 图片加载错误时不显示默认断裂图标
+              />
+            }
+            size={32} 
+          />
+        ) : (
+          <Avatar icon={<UserOutlined />} size={32} />
+        )
+      ),
     },
     {
       title: '用户名',
@@ -113,6 +151,13 @@ const UserManagement = () => {
       key: 'action',
       render: (_: any, record: UserType) => (
         <Space size="middle">
+          <Button 
+            type="primary" 
+            icon={<EditOutlined />} 
+            onClick={() => handleEdit(record)}
+          >
+            编辑
+          </Button>
           <Popconfirm
             title="确定要删除该用户吗?"
             onConfirm={() => handleDelete(record.id)}
@@ -168,6 +213,13 @@ const UserManagement = () => {
           showTotal: (total) => `共 ${total} 条数据`,
         }}
         loading={loading}
+      />
+      
+      <UserEditModal
+        visible={editModalVisible}
+        onCancel={() => setEditModalVisible(false)}
+        onSuccess={handleEditSuccess}
+        user={currentUser}
       />
     </div>
   );

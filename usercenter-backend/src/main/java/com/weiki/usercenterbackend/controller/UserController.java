@@ -9,6 +9,7 @@ import com.weiki.usercenterbackend.model.request.UserLoginRequest;
 import com.weiki.usercenterbackend.model.request.UserPageRequest;
 import com.weiki.usercenterbackend.model.request.UserRegisterRequest;
 import com.weiki.usercenterbackend.model.request.UserUpdateRequest;
+import com.weiki.usercenterbackend.model.request.PasswordUpdateRequest;
 import com.weiki.usercenterbackend.model.vo.PageVO;
 import com.weiki.usercenterbackend.service.UserService;
 import io.swagger.annotations.Api;
@@ -199,5 +200,27 @@ public class UserController {
         // 获取分页用户数据
         PageVO<User> userPage = userService.getUserPage(current, pageSize, username, userAccount, userRole);
         return ResultUtils.success(userPage);
+    }
+
+    /**
+     * 修改密码
+     *
+     * @param passwordUpdateRequest
+     * @param request
+     * @return
+     */
+    @PostMapping("/update-password")
+    @ApiOperation(value = "修改密码", notes = "用户修改自己的密码")
+    public BaseResponse<Boolean> updatePassword(@RequestBody PasswordUpdateRequest passwordUpdateRequest, HttpServletRequest request) {
+        if (passwordUpdateRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        
+        String oldPassword = passwordUpdateRequest.getOldPassword();
+        String newPassword = passwordUpdateRequest.getNewPassword();
+        String checkPassword = passwordUpdateRequest.getCheckPassword();
+        
+        boolean result = userService.updatePassword(oldPassword, newPassword, checkPassword, request);
+        return ResultUtils.success(result);
     }
 } 

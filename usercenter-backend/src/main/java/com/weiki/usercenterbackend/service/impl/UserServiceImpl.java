@@ -297,4 +297,53 @@ public class UserServiceImpl implements UserService {
         // 封装结果
         return new PageVO<>(safetyUserList, total, current, pageSize);
     }
+
+    @Override
+    public boolean updatePassword(String oldPassword, String newPassword, String checkPassword, HttpServletRequest request) {
+        // 校验参数
+        if (StringUtils.isAnyBlank(oldPassword, newPassword, checkPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数为空");
+        }
+        if (newPassword.length() < 8 || checkPassword.length() < 8) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码长度不能小于8位");
+        }
+        // 新密码和确认密码相同
+        if (!newPassword.equals(checkPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "两次输入的新密码不一致");
+        }
+        
+        // 获取当前登录用户
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        User currentUser = (User) userObj;
+        if (currentUser == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
+        }
+        
+        // 查询用户信息
+        Long userId = currentUser.getId();
+        User user = userMapper.selectById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+        }
+        
+        // 校验旧密码
+        String encryptOldPassword = DigestUtils.md5DigestAsHex((SALT + oldPassword).getBytes());
+        if (!encryptOldPassword.equals(user.getUserPassword())) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "旧密码错误");
+        }
+        
+        // 加密新密码
+        String encryptNewPassword = DigestUtils.md5DigestAsHex((SALT + newPassword).getBytes());
+        
+        // 更新用户密码
+        user.setUserPassword(encryptNewPassword);
+        int result = userMapper.updateById(user);
+        
+        // 清除登录状态，让用户重新登录
+        if (result > 0) {
+            request.getSession().removeAttribute(USER_LOGIN_STATE);
+        }
+        
+        return result > 0;
+    }
 } 

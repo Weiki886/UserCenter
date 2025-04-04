@@ -56,6 +56,12 @@ export interface UserPageParams {
   userRole?: number;
 }
 
+export interface PasswordUpdateParams {
+  oldPassword: string;
+  newPassword: string;
+  checkPassword: string;
+}
+
 /**
  * 用户登录
  * @param params
@@ -165,4 +171,24 @@ export async function getUserPage(params: UserPageParams): Promise<PageVO<UserTy
   }
   
   return data;
+}
+
+/**
+ * 修改用户密码
+ * @param params 
+ */
+export async function updatePassword(params: PasswordUpdateParams): Promise<boolean> {
+  try {
+    const response = await api.post<BaseResponse<boolean>>('/user/update-password', params);
+    const { code, data, message, description } = response.data;
+    
+    if (code !== 0) {
+      throw new Error(description || message || '修改密码失败');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('修改密码失败:', error);
+    throw error;
+  }
 } 

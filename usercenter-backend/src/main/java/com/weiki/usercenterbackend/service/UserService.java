@@ -80,4 +80,14 @@ public interface UserService {
      * @return 分页用户数据
      */
     PageVO<User> getUserPage(long current, long pageSize, String username, String userAccount, Integer userRole);
+
+    /**
+     * 更新用户密码
+     * @param oldPassword 旧密码
+     * @param newPassword 新密码
+     * @param checkPassword 确认密码
+     * @param request HTTP请求
+     * @return 是否成功
+     */
+    boolean updatePassword(String oldPassword, String newPassword, String checkPassword, HttpServletRequest request);
 } 

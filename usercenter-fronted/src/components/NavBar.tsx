@@ -1,7 +1,7 @@
 import { Layout, Avatar, Dropdown } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserOutlined, SettingOutlined, LogoutOutlined } from '@ant-design/icons';
+import { UserOutlined, SettingOutlined, LogoutOutlined, LockOutlined } from '@ant-design/icons';
 import { logout } from '@/services/userService';
 import { useUser } from '@/contexts/UserContext';
 
@@ -28,6 +28,7 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
   const isActive = (item: string) => {
     if (item === 'dashboard' && activeItem === 'dashboard') return true;
     if (item === 'settings' && activeItem === 'settings') return true;
+    if (item === 'change-password' && activeItem === 'change-password') return true;
     return false;
   };
 
@@ -117,10 +118,24 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
                   ),
                 },
                 {
+                  key: '3',
+                  icon: <LockOutlined />,
+                  label: (
+                    <Link 
+                      href="/dashboard/change-password" 
+                      style={{
+                        color: isActive('change-password') ? '#1890ff' : 'inherit'
+                      }}
+                    >
+                      修改密码
+                    </Link>
+                  ),
+                },
+                {
                   type: 'divider',
                 },
                 {
-                  key: '3',
+                  key: '4',
                   icon: <LogoutOutlined />,
                   label: '退出登录',
                   onClick: () => {

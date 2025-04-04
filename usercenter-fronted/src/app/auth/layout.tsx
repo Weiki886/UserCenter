@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
-import "./globals.css";
+import "../globals.css";
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { UserProvider } from "@/contexts/UserContext";
@@ -12,11 +12,11 @@ export const metadata: Metadata = {
   description: "用户中心系统 - 基于React18和Ant Design",
   icons: {
     icon: [
-      { url: '/favicon.ico' },
-      { url: '/icon.png', type: 'image/png', sizes: '32x32' },
+      { url: '/icon/favicon.ico' },
+      { url: '/icon/icon.png', type: 'image/png', sizes: '32x32' },
     ],
     apple: [
-      { url: '/apple-icon.png', sizes: '180x180', type: 'image/png' },
+      { url: '/icon/apple-icon.png', sizes: '180x180', type: 'image/png' },
     ],
   },
 };

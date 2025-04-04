@@ -1,5 +1,6 @@
 package com.weiki.usercenterbackend.controller;
 
+import com.weiki.usercenterbackend.annotation.AuthCheck;
 import com.weiki.usercenterbackend.common.BaseResponse;
 import com.weiki.usercenterbackend.common.ErrorCode;
 import com.weiki.usercenterbackend.common.ResultUtils;
@@ -22,7 +23,6 @@ import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
 import java.util.Map;
 
-import static com.weiki.usercenterbackend.constant.UserConstant.ADMIN_ROLE;
 import static com.weiki.usercenterbackend.constant.UserConstant.USER_LOGIN_STATE;
 
 /**
@@ -128,11 +128,8 @@ public class UserController {
      */
     @PostMapping("/delete")
     @ApiOperation(value = "删除用户", notes = "管理员删除用户")
+    @AuthCheck(mustRole = 1)
     public BaseResponse<Boolean> deleteUser(@RequestBody Map<String, Long> deleteRequest, HttpServletRequest request) {
-        if (!isAdmin(request)) {
-            throw new BusinessException(ErrorCode.NO_AUTH);
-        }
-        
         Long id = deleteRequest.get("id");
         if (id == null || id <= 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
@@ -140,19 +137,6 @@ public class UserController {
         
         boolean result = userService.deleteUser(id);
         return ResultUtils.success(result);
-    }
-
-    /**
-     * 是否为管理员
-     *
-     * @param request
-     * @return
-     */
-    private boolean isAdmin(HttpServletRequest request) {
-        // 仅管理员可查询
-        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
-        User user = (User) userObj;
-        return user != null && user.getUserRole() == ADMIN_ROLE;
     }
 
     /**
@@ -181,14 +165,10 @@ public class UserController {
      */
     @GetMapping("/list/page")
     @ApiOperation(value = "分页获取用户列表", notes = "管理员分页获取用户列表")
+    @AuthCheck(mustRole = 1)
     public BaseResponse<PageVO<User>> listUsers(UserPageRequest userPageRequest, HttpServletRequest request) {
         if (userPageRequest == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);
-        }
-        
-        // 鉴权，仅管理员可查询
-        if (!isAdmin(request)) {
-            throw new BusinessException(ErrorCode.NO_AUTH);
         }
         
         long current = userPageRequest.getCurrent();

@@ -121,7 +121,9 @@ UserCenter/
 │   ├── src/                    
 │   │   ├── main/java/com/weiki/usercenterbackend/
 │   │   │   ├── annotation/     # 自定义注解
+│   │   │   │   └── AuthCheck.java  # 权限校验注解
 │   │   │   ├── aop/            # 面向切面编程
+│   │   │   │   └── AuthInterceptor.java  # 权限校验拦截器
 │   │   │   ├── common/         # 公共组件
 │   │   │   ├── config/         # 配置类
 │   │   │   ├── constant/       # 常量定义
@@ -184,6 +186,28 @@ http://localhost:8083/doc.html
 ```
 http://localhost:8083/doc.html#/default/%E7%94%A8%E6%88%B7%E7%9B%B8%E5%85%B3%E6%8E%A5%E5%8F%A3/updateUserUsingPOST
 ```
+
+## API权限控制
+
+系统使用AOP（面向切面编程）实现了统一的API接口权限控制：
+
+1. **@AuthCheck注解**：用于标记需要进行权限校验的API接口
+   - 位于`annotation/AuthCheck.java`
+   - 支持设置所需的用户角色级别（普通用户/管理员）
+
+2. **权限拦截器**：自动拦截并校验带有@AuthCheck注解的接口
+   - 位于`aop/AuthInterceptor.java`
+   - 检查用户登录状态
+   - 检查用户状态（是否被禁用）
+   - 检查用户角色是否满足接口要求
+
+3. **使用方式**：
+   - 在Controller方法上添加`@AuthCheck(mustRole = 1)`注解表示需要管理员权限
+   - 在Controller方法上添加`@AuthCheck()`注解表示需要登录但不限制角色
+
+4. **权限级别**：
+   - 0：普通用户（默认）
+   - 1：管理员
 
 ## 主要功能说明
 

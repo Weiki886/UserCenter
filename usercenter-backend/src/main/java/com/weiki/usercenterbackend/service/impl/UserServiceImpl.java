@@ -38,6 +38,16 @@ public class UserServiceImpl implements UserService {
      */
     private static final String SALT = "weiki";
 
+    /**
+     * 根据用户账号生成默认用户名
+     * 
+     * @param userAccount 用户账号
+     * @return 默认用户名
+     */
+    private String generateDefaultUsername(String userAccount) {
+        return "用户_" + userAccount;
+    }
+
     @Override
     public User userRegister(String userAccount, String userPassword, String checkPassword, HttpServletRequest request) {
         // 1. 校验
@@ -82,6 +92,8 @@ public class UserServiceImpl implements UserService {
         User user = new User();
         user.setUserAccount(userAccount);
         user.setUserPassword(encryptPassword);
+        // 设置默认用户名
+        user.setUsername(generateDefaultUsername(userAccount));
         // 设置用户状态，0表示正常
         user.setUserStatus(0);
         // 设置用户角色，默认为普通用户

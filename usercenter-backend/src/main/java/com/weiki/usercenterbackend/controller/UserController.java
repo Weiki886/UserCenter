@@ -24,6 +24,7 @@ import javax.servlet.http.HttpServletRequest;
 import java.util.Map;
 
 import static com.weiki.usercenterbackend.constant.UserConstant.USER_LOGIN_STATE;
+import com.weiki.usercenterbackend.annotation.RateLimit;
 
 /**
  * 用户接口
@@ -45,6 +46,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/register")
+    @RateLimit(limit = 5, time = 60, key = "register")
     @ApiOperation(value = "用户注册", notes = "用户注册接口")
     public BaseResponse<User> userRegister(@RequestBody UserRegisterRequest userRegisterRequest, HttpServletRequest request) {
         if (userRegisterRequest == null) {
@@ -68,6 +70,7 @@ public class UserController {
      * @return
      */
     @PostMapping("/login")
+    @RateLimit(limit = 10, time = 60, key = "login")
     @ApiOperation(value = "用户登录", notes = "用户登录接口")
     public BaseResponse<User> userLogin(@RequestBody UserLoginRequest userLoginRequest, HttpServletRequest request) {
         if (userLoginRequest == null) {

@@ -9,7 +9,6 @@ import com.weiki.usercenterbackend.model.vo.PageVO;
 import com.weiki.usercenterbackend.service.UserService;
 import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.StringUtils;
-import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.stereotype.Service;
 import org.springframework.util.DigestUtils;
 
@@ -19,13 +18,10 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
-import java.util.concurrent.TimeUnit;
 
 import static com.weiki.usercenterbackend.constant.UserConstant.DEFAULT_ROLE;
 import static com.weiki.usercenterbackend.constant.UserConstant.USER_LOGIN_STATE;
 import static com.weiki.usercenterbackend.constant.UserConstant.ADMIN_ROLE;
-import static com.weiki.usercenterbackend.constant.UserConstant.USER_CACHE_KEY;
-import static com.weiki.usercenterbackend.constant.UserConstant.USER_CACHE_EXPIRE;
 
 /**
  * 用户服务实现类
@@ -36,9 +32,6 @@ public class UserServiceImpl implements UserService {
 
     @Resource
     private UserMapper userMapper;
-
-    @Resource
-    private RedisTemplate<String, Object> redisTemplate;
 
     /**
      * 盐值，混淆密码
@@ -199,17 +192,7 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public User getById(long id) {
-        String cacheKey = USER_CACHE_KEY + id;
-        User user = (User) redisTemplate.opsForValue().get(cacheKey);
-        if (user != null) {
-            return user;
-        }
-        
-        user = userMapper.selectById(id);
-        if (user != null) {
-            redisTemplate.opsForValue().set(cacheKey, user, USER_CACHE_EXPIRE, TimeUnit.MINUTES);
-        }
-        return user;
+        return userMapper.selectById(id);
     }
     
     @Override
@@ -219,12 +202,7 @@ public class UserServiceImpl implements UserService {
         }
         // 逻辑删除
         int result = userMapper.deleteById(id);
-        boolean success = result > 0;
-        if (success) {
-            String cacheKey = USER_CACHE_KEY + id;
-            redisTemplate.delete(cacheKey);
-        }
-        return success;
+        return result > 0;
     }
 
     @Override
@@ -291,22 +269,17 @@ public class UserServiceImpl implements UserService {
         }
         
         // 更新用户
-        boolean success = userMapper.updateById(user) > 0;
+        int result = userMapper.updateById(user);
         
         // 如果是修改当前登录用户的信息，更新session中的用户信息
-        if (success && userId.equals(currentUser.getId())) {
+        if (result > 0 && userId.equals(currentUser.getId())) {
             User safetyUser = getSafetyUser(user);
             request.getSession().setAttribute(USER_LOGIN_STATE, safetyUser);
         }
         
-        if (success) {
-            String cacheKey = USER_CACHE_KEY + user.getId();
-            redisTemplate.delete(cacheKey);
-        }
+        log.info("用户更新结果: {}", result > 0 ? "成功" : "失败");
         
-        log.info("用户更新结果: {}", success ? "成功" : "失败");
-        
-        return success;
+        return result > 0;
     }
 
     @Override
@@ -383,11 +356,6 @@ public class UserServiceImpl implements UserService {
             request.getSession().removeAttribute(USER_LOGIN_STATE);
         }
         
-        boolean success = result > 0;
-        if (success) {
-            String cacheKey = USER_CACHE_KEY + user.getId();
-            redisTemplate.delete(cacheKey);
-        }
-        return success;
+        return result > 0;
     }
 } 

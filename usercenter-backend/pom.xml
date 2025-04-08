@@ -22,6 +22,7 @@
         <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
         <knife4j.version>2.0.9</knife4j.version>
         <mapstruct.version>1.4.2.Final</mapstruct.version>
+        <lombok.version>1.18.30</lombok.version>
     </properties>
     
     <!-- 配置阿里云Maven仓库 -->
@@ -85,6 +86,7 @@
         <dependency>
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
+            <version>${lombok.version}</version>
             <optional>true</optional>
         </dependency>
         

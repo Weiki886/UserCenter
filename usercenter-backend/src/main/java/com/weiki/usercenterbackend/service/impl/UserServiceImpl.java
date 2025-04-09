@@ -1,5 +1,6 @@
 package com.weiki.usercenterbackend.service.impl;
 
+import com.weiki.usercenterbackend.annotation.DistributedLock;
 import com.weiki.usercenterbackend.common.ErrorCode;
 import com.weiki.usercenterbackend.exception.BusinessException;
 import com.weiki.usercenterbackend.mapper.UserMapper;
@@ -49,6 +50,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @DistributedLock(lockKey = "'userRegister:' + #userAccount", waitTime = 5000, leaseTime = 30000)
     public User userRegister(String userAccount, String userPassword, String checkPassword, HttpServletRequest request) {
         // 1. 校验
         if (StringUtils.isAnyBlank(userAccount, userPassword, checkPassword)) {
@@ -311,6 +313,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @DistributedLock(lockKey = "'updatePassword:' + #request.getSession().getAttribute('USER_LOGIN_STATE').id", waitTime = 5000, leaseTime = 30000)
     public boolean updatePassword(String oldPassword, String newPassword, String checkPassword, HttpServletRequest request) {
         // 校验参数
         if (StringUtils.isAnyBlank(oldPassword, newPassword, checkPassword)) {

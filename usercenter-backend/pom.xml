@@ -147,6 +147,12 @@
             <artifactId>redisson-spring-boot-starter</artifactId>
             <version>3.17.7</version>
         </dependency>
+
+        <!-- RabbitMQ依赖 -->
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-amqp</artifactId>
+        </dependency>
     </dependencies>
 
     <build>

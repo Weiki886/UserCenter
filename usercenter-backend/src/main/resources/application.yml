@@ -26,6 +26,26 @@ spring:
         max-wait: -1
         max-idle: 8
         min-idle: 0
+  # RabbitMQ配置
+  rabbitmq:
+    enabled: true  # 控制是否启用 RabbitMQ 功能，设置为 false 可以在没有 RabbitMQ 的情况下启动应用
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    # 消息确认配置
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    # 消费者配置
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 1
+        concurrency: 3
+        max-concurrency: 10
 
 # Redisson配置（仅在 redis.enabled=true 时生效）
 redisson:

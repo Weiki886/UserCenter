@@ -143,36 +143,41 @@ UserCenter/
 │   │   │   ├── exception/      # 异常处理
 │   │   │   ├── mapper/         # 数据访问层
 │   │   │   ├── model/          # 数据模型
+│   │   │   ├── mq/             # 消息队列相关代码
+│   │   │   │   ├── config/     # MQ配置
+│   │   │   │   ├── consumer/   # 消息消费者
+│   │   │   │   ├── producer/   # 消息生产者
+│   │   │   │   └── model/      # 消息模型
 │   │   │   ├── service/        # 业务逻辑层
 │   │   │   │   ├── DistributedLockService.java  # 分布式锁接口
 │   │   │   │   └── impl/       # 服务实现
 │   │   │   │       ├── DistributedLockServiceImpl.java  # Redis分布式锁实现
 │   │   │   │       └── LocalLockServiceImpl.java  # 本地锁实现
-│   │   │   └── utils/          # 工具类
+│   │   │   └── utils/          # 工具类（如有）
 │   │   └── resources/          # 资源文件
 │   │       ├── mappers/        # MyBatis映射文件
 │   │       └── application.yml # 应用配置
 │   └── sql/                    # SQL脚本
 ├── usercenter-fronted/         # 前端代码
 │   ├── public/                 # 静态资源文件
-│   │   ├── icon/              # 网站图标文件夹
-│   │   │   ├── favicon.ico    # 网站图标
-│   │   │   ├── icon.png       # 网站图标备用格式
-│   │   │   └── apple-icon.png # 苹果设备图标
-│   │   ├── src/
-│   │   │   ├── app/                # 页面组件
-│   │   │   │   ├── auth/           # 认证相关页面
-│   │   │   │   ├── dashboard/      # 仪表盘页面
-│   │   │   │   │   ├── settings/   # 个人设置页面
-│   │   │   │   │   ├── users/      # 用户管理页面
-│   │   │   │   │   └── change-password/ # 密码修改页面
-│   │   │   │   └── page.tsx        # 首页
-│   │   │   ├── components/         # 公共组件
-│   │   │   ├── contexts/           # React Context
-│   │   │   ├── services/           # API服务
-│   │   │   └── utils/              # 工具函数
-│   │   └── package.json            # 依赖配置
-│   └── README.md                   # 项目说明
+│   │   ├── icon/               # 网站图标文件夹
+│   │   │   ├── favicon.ico     # 网站图标
+│   │   │   ├── icon.png        # 网站图标备用格式
+│   │   │   └── apple-icon.png  # 苹果设备图标
+│   ├── src/                    # 源代码目录
+│   │   ├── app/                # 页面组件
+│   │   │   ├── auth/           # 认证相关页面
+│   │   │   ├── dashboard/      # 仪表盘页面
+│   │   │   │   ├── settings/   # 个人设置页面
+│   │   │   │   ├── users/      # 用户管理页面
+│   │   │   │   └── change-password/ # 密码修改页面
+│   │   │   └── page.tsx        # 首页
+│   │   ├── components/         # 公共组件
+│   │   ├── contexts/           # React Context
+│   │   ├── services/           # API服务
+│   │   └── utils/              # 工具函数
+│   ├── package.json            # 依赖配置
+│   └── README.md               # 项目说明
 ```
 
 ### 自定义网站图标

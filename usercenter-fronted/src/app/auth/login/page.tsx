@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button, Form, Input, message, Card, Divider } from 'antd';
+import { Button, Form, Input, message, Card, Divider, Spin } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { login } from '@/services/userService';
 import { useRouter } from 'next/navigation';
@@ -10,22 +10,47 @@ import { useUser } from '@/contexts/UserContext';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
-  const { refreshUserInfo } = useUser();
+  const { refreshUserInfo, currentUser } = useUser();
+
+  // 当用户已登录时自动重定向到首页
+  React.useEffect(() => {
+    if (currentUser) {
+      router.push('/');
+    }
+  }, [currentUser, router]);
 
   const onFinish = async (values: { userAccount: string; userPassword: string }) => {
     try {
       setLoading(true);
       await login(values);
-      await refreshUserInfo();
       message.success('登录成功！');
-      router.push('/');
+      
+      // 标记为重定向状态
+      setRedirecting(true);
+      
+      // 刷新用户信息
+      await refreshUserInfo();
+      
+      // 使用更可靠的重定向机制
+      window.location.href = '/';
     } catch (error: any) {
       message.error(error.message || '登录失败，请重试');
+      setRedirecting(false);
     } finally {
       setLoading(false);
     }
   };
+
+  // 显示重定向中状态
+  if (redirecting) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin size="large" tip="登录成功，正在跳转..." />
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f0f2f5' }}>

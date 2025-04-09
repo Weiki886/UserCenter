@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Button, Form, Input, message, Card, Divider } from 'antd';
+import { Button, Form, Input, message, Card, Divider, Spin } from 'antd';
 import { UserOutlined, LockOutlined, SafetyOutlined } from '@ant-design/icons';
 import { register } from '@/services/userService';
 import { useRouter } from 'next/navigation';
@@ -10,8 +10,16 @@ import { useUser } from '@/contexts/UserContext';
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false);
+  const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
-  const { refreshUserInfo } = useUser();
+  const { refreshUserInfo, currentUser } = useUser();
+
+  // 当用户已登录时自动重定向到首页
+  React.useEffect(() => {
+    if (currentUser) {
+      router.push('/');
+    }
+  }, [currentUser, router]);
 
   const onFinish = async (values: { userAccount: string; userPassword: string; checkPassword: string }) => {
     try {
@@ -19,17 +27,30 @@ export default function RegisterPage() {
       const user = await register(values);
       message.success('注册成功！');
       
+      // 标记为重定向状态
+      setRedirecting(true);
+      
       // 刷新用户信息
       await refreshUserInfo();
       
-      // 注册成功后直接跳转到首页
-      router.push('/');
+      // 使用更可靠的重定向机制
+      window.location.href = '/';
     } catch (error: any) {
       message.error(error.message || '注册失败，请重试');
+      setRedirecting(false);
     } finally {
       setLoading(false);
     }
   };
+
+  // 显示重定向中状态
+  if (redirecting) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin size="large" tip="注册成功，正在跳转..." />
+      </div>
+    );
+  }
 
   return (
     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f0f2f5' }}>

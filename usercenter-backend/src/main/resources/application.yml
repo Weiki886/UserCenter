@@ -27,7 +27,7 @@ spring:
         max-idle: 8
         min-idle: 0
 
-# Redisson配置
+# Redisson配置（仅在 redis.enabled=true 时生效）
 redisson:
   address: redis://localhost:6379
   database: 0

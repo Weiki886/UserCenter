@@ -1,34 +1,17 @@
 'use client';
 
-import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Button, Layout, Typography, Row, Col, Card, Space, Avatar } from 'antd';
 import { SettingOutlined, TeamOutlined, SecurityScanOutlined } from '@ant-design/icons';
-import { getCurrentUser, UserType } from '@/services/userService';
 import NavBar from '@/components/NavBar';
+import { useUser } from '@/contexts/UserContext';
 
 const { Content, Footer } = Layout;
 const { Title, Paragraph } = Typography;
 
 export default function Home() {
   const router = useRouter();
-  const [currentUser, setCurrentUser] = useState<UserType | null>(null);
-
-  useEffect(() => {
-    const fetchCurrentUser = async () => {
-      try {
-        const user = await getCurrentUser();
-        if (user) {
-          setCurrentUser(user as UserType);
-        }
-      } catch (error) {
-        // 非登录状态访问首页不需要跳转
-        console.log('未登录状态');
-      }
-    };
-
-    fetchCurrentUser();
-  }, []);
+  const { currentUser, loading } = useUser();
 
   return (
     <Layout style={{ minHeight: '100vh' }}>
@@ -40,7 +23,7 @@ export default function Home() {
           <Paragraph style={{ fontSize: '18px', maxWidth: '800px', margin: '0 auto' }}>
             一站式用户管理平台，提供完善的用户注册、认证、授权和管理功能
           </Paragraph>
-          {!currentUser && (
+          {!currentUser && !loading && (
             <Space style={{ marginTop: '20px' }}>
               <Button type="primary" size="large" onClick={() => router.push('/auth/login')}>
                 立即登录

@@ -7,7 +7,7 @@ import { UserType, getCurrentUser, refreshCurrentUser } from '@/services/userSer
 interface UserContextType {
   currentUser: UserType | null;
   loading: boolean;
-  refreshUserInfo: (silent?: boolean) => Promise<void>;
+  refreshUserInfo: (silent?: boolean) => Promise<UserType | null>;
   clearUserInfo: () => void; // 新增清除用户信息的方法
 }
 
@@ -15,58 +15,105 @@ interface UserContextType {
 const UserContext = createContext<UserContextType>({
   currentUser: null,
   loading: true,
-  refreshUserInfo: async () => {},
+  refreshUserInfo: async () => null,
   clearUserInfo: () => {},
 });
 
 // 创建Provider组件
 export function UserProvider({ children }: { children: ReactNode }) {
+  // 初始化状态为null，避免服务端渲染时尝试读取localStorage
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isClient, setIsClient] = useState(false);
+
+  // 确保只在客户端执行localStorage相关操作
+  useEffect(() => {
+    setIsClient(true);
+    // 尝试从localStorage获取用户信息
+    try {
+      const storedUser = localStorage.getItem('userInfo');
+      if (storedUser) {
+        const parsedUser = JSON.parse(storedUser);
+        setCurrentUser(parsedUser);
+        setLoading(false);
+      }
+    } catch (e) {
+      console.error('解析存储的用户信息失败', e);
+      localStorage.removeItem('userInfo');
+    }
+    
+    // 然后再获取最新数据
+    fetchUserData();
+  }, []);
 
   // 清除用户信息方法
   const clearUserInfo = useCallback(() => {
     setCurrentUser(null);
+    // 同时清除localStorage中的数据
+    if (typeof window !== 'undefined') {
+      localStorage.removeItem('userToken');
+      localStorage.removeItem('userInfo');
+    }
   }, []);
 
   // 使用useCallback优化刷新用户信息的方法，添加silent参数支持静默刷新
   const refreshUserInfo = useCallback(async (silent: boolean = false) => {
     try {
       if (!silent) setLoading(true);
-      const user = await refreshCurrentUser(); // 使用不带缓存的刷新
+      
+      // 确保先清除api缓存
+      await refreshCurrentUser(); // 使用不带缓存的刷新
+      
+      // 重新获取用户信息
+      const user = await getCurrentUser();
+      
       if (user) {
+        // 确保状态更新并保存到localStorage
         setCurrentUser(user as UserType);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('userInfo', JSON.stringify(user));
+        }
       }
+      
+      return user; // 返回用户信息便于后续操作
     } catch (error) {
-      console.log('获取用户信息失败');
+      console.error('获取用户信息失败:', error);
       // 如果获取用户信息失败，视为用户已登出
       setCurrentUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('userToken');
+      }
+      return null;
     } finally {
       if (!silent) setLoading(false);
     }
   }, []);
 
-  // 组件挂载时获取用户信息
-  useEffect(() => {
-    // 使用缓存版本获取用户信息
-    async function fetchUserData() {
-      try {
-        setLoading(true);
-        const user = await getCurrentUser();
-        if (user) {
-          setCurrentUser(user as UserType);
+  // 使用缓存版本获取用户信息
+  async function fetchUserData() {
+    try {
+      // 保持loading状态，直到用户信息获取完成
+      setLoading(true);
+      const user = await getCurrentUser();
+      if (user) {
+        setCurrentUser(user as UserType);
+        if (typeof window !== 'undefined') {
+          localStorage.setItem('userInfo', JSON.stringify(user));
         }
-      } catch (error) {
-        console.log('获取用户信息失败');
-        setCurrentUser(null);
-      } finally {
-        setLoading(false);
       }
+    } catch (error) {
+      console.error('获取用户信息失败:', error);
+      setCurrentUser(null);
+      if (typeof window !== 'undefined') {
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('userToken');
+      }
+    } finally {
+      setLoading(false);
     }
-    
-    fetchUserData();
-  }, []);
-  
+  }
+
   // 定期静默刷新用户信息
   useEffect(() => {
     // 如果用户已登录，每5分钟静默刷新一次用户信息

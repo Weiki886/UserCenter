@@ -23,7 +23,14 @@ const CACHE_DURATION = 60000; // 缓存有效期1分钟
 // 请求拦截器
 api.interceptors.request.use(
   (config) => {
-    // 可以在这里添加认证token等
+    // 只在客户端环境下从localStorage获取token并添加到请求头
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('userToken');
+      if (token) {
+        config.headers = config.headers || {};
+        config.headers['Authorization'] = `Bearer ${token}`;
+      }
+    }
     return config;
   },
   (error) => {
@@ -34,6 +41,22 @@ api.interceptors.request.use(
 // 响应拦截器
 api.interceptors.response.use(
   (response) => {
+    // 只在客户端执行localStorage操作
+    if (typeof window !== 'undefined') {
+      // 检查是否是登录响应，如果是则保存token
+      const url = response.config.url;
+      if (url && url.includes('/user/login') && response.data.code === 0) {
+        // 保存token到localStorage (注意：由于后端可能没有在响应中直接返回token，以下是假设的处理方式)
+        if (response.headers && response.headers.authorization) {
+          localStorage.setItem('userToken', response.headers.authorization);
+        } else if (response.data.data && response.data.data.token) {
+          localStorage.setItem('userToken', response.data.data.token);
+        } else {
+          // 没有token但用户已登录，生成临时token
+          localStorage.setItem('userToken', `temp_${Date.now()}`);
+        }
+      }
+    }
     return response;
   },
   async (error) => {

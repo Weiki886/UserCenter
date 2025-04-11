@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Button, Form, Input, message, Card, Divider, Spin } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
 import { login } from '@/services/userService';
@@ -12,10 +12,10 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
-  const { refreshUserInfo, currentUser } = useUser();
+  const { refreshUserInfo, currentUser, loading: userLoading } = useUser();
 
   // 当用户已登录时自动重定向到首页
-  React.useEffect(() => {
+  useEffect(() => {
     if (currentUser) {
       router.push('/');
     }
@@ -24,24 +24,40 @@ export default function LoginPage() {
   const onFinish = async (values: { userAccount: string; userPassword: string }) => {
     try {
       setLoading(true);
-      await login(values);
+      
+      // 1. 登录过程
+      const userData = await login(values);
       message.success('登录成功！');
       
-      // 标记为重定向状态
+      // 2. 立即保存用户数据到localStorage (只在客户端执行)
+      if (typeof window !== 'undefined') {
+        localStorage.setItem('userInfo', JSON.stringify(userData));
+      }
+      
+      // 3. 标记为重定向状态
       setRedirecting(true);
       
-      // 刷新用户信息
+      // 4. 刷新用户信息并等待完成
       await refreshUserInfo();
       
-      // 使用更可靠的重定向机制
-      window.location.href = '/';
+      // 5. 使用replace而不是push，避免保留历史状态
+      router.replace('/');
     } catch (error: any) {
+      console.error('登录失败:', error);
       message.error(error.message || '登录失败，请重试');
       setRedirecting(false);
-    } finally {
       setLoading(false);
     }
   };
+
+  // 显示加载状态
+  if (userLoading) {
+    return (
+      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
+        <Spin size="large" tip="加载中..." />
+      </div>
+    );
+  }
 
   // 显示重定向中状态
   if (redirecting) {

@@ -1,9 +1,10 @@
-import { Layout, Avatar, Dropdown } from 'antd';
+import { Layout, Avatar, Dropdown, Skeleton, message } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserOutlined, SettingOutlined, LogoutOutlined, LockOutlined } from '@ant-design/icons';
 import { logout } from '@/services/userService';
 import { useUser } from '@/contexts/UserContext';
+import { useEffect, useState } from 'react';
 
 const { Header } = Layout;
 
@@ -15,7 +16,50 @@ interface NavItemProps {
 
 export default function NavBar({ activeItem }: { activeItem: string }) {
   const router = useRouter();
-  const { currentUser, clearUserInfo } = useUser();
+  const { currentUser, clearUserInfo, loading, refreshUserInfo } = useUser();
+  const [localUser, setLocalUser] = useState<any>(null);
+  const [isClient, setIsClient] = useState(false);
+
+  // 客户端渲染检测
+  useEffect(() => {
+    setIsClient(true);
+  }, []);
+
+  // 添加状态同步逻辑
+  useEffect(() => {
+    if (!isClient) return; // 只在客户端执行
+
+    // 如果Context中有用户，使用Context中的用户
+    if (currentUser) {
+      setLocalUser(currentUser);
+    } 
+    // 否则检查localStorage
+    else {
+      try {
+        const storedUser = localStorage.getItem('userInfo');
+        if (storedUser) {
+          const parsedUser = JSON.parse(storedUser);
+          setLocalUser(parsedUser);
+          // 触发Context更新但不显示加载状态
+          refreshUserInfo(true);
+        }
+      } catch (error) {
+        console.error('解析存储的用户信息失败:', error);
+      }
+    }
+  }, [currentUser, refreshUserInfo, isClient]);
+
+  // 添加调试日志，帮助排查状态问题
+  useEffect(() => {
+    if (!isClient) return; // 只在客户端执行
+    
+    console.log('NavBar状态更新:', { 
+      isLoggedIn: !!currentUser, 
+      localUserExists: !!localUser,
+      loading,
+      username: currentUser?.username || localUser?.username
+    });
+  }, [currentUser, localUser, loading, isClient]);
 
   const navItems = [
     { title: '首页', link: '/', active: activeItem === 'home' },
@@ -35,19 +79,34 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
   // 处理退出登录
   const handleLogout = async () => {
     try {
-      // 先调用后端登出API
+      // 立即设置UI状态为未登录以避免闪烁
+      setLocalUser(null);
+      
+      // 调用登出API
       await logout();
       
-      // 立即清除本地用户状态
+      // 显示退出成功提示
+      message.success('退出登录成功');
+      
+      // 清除用户信息
       clearUserInfo();
       
-      // 在用户状态清除后再跳转到登录页
-      router.push('/auth/login');
+      // 如果当前不在首页，则跳转到首页
+      if (activeItem !== 'home') {
+        router.replace('/');
+      }
     } catch (error) {
       console.error('退出登录失败:', error);
-      // 即使API调用失败，也应清除本地状态并跳转
+      // 显示退出失败提示
+      message.error('退出登录失败，请重试');
+      
+      // 即使API调用失败，也确保状态被清除
       clearUserInfo();
-      router.push('/auth/login');
+      
+      // 如果当前不在首页，则跳转到首页
+      if (activeItem !== 'home') {
+        router.replace('/');
+      }
     }
   };
 
@@ -90,7 +149,7 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
                 height: '64px', 
                 lineHeight: '64px',
                 backgroundColor: item.active ? '#f0f0f0' : 'transparent',
-                display: item.title === '用户管理' && currentUser?.userRole !== 1 ? 'none' : 'block'
+                display: item.title === '用户管理' && (!loading && currentUser?.userRole !== 1) ? 'none' : 'block'
               }}
             >
               {item.title}
@@ -105,7 +164,9 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
           justifyContent: 'flex-end', 
           paddingRight: '30px' 
         }}>
-          {currentUser ? (
+          {loading ? (
+            <Skeleton.Avatar active size="small" style={{ marginRight: 8 }} />
+          ) : (currentUser || localUser) ? (
             <Dropdown menu={{
               items: [
                 {
@@ -165,10 +226,10 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
                 <Avatar 
                   size="small" 
                   icon={<UserOutlined />} 
-                  src={currentUser?.avatarUrl} 
+                  src={(currentUser || localUser)?.avatarUrl} 
                   style={{ marginRight: 8 }} 
                 />
-                {currentUser?.username || '用户'}
+                {(currentUser || localUser)?.username || '用户'}
               </span>
             </Dropdown>
           ) : (

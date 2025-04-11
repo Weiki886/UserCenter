@@ -110,7 +110,7 @@ export async function logout(): Promise<number> {
  * 获取当前用户信息
  */
 export async function getCurrentUser(): Promise<UserType> {
-  const response = await api.get<BaseResponse<UserType>>('/user/current');
+  const response = await api.getCached<BaseResponse<UserType>>('/user/current');
   const { code, data, message, description } = response.data;
   
   if (code !== 0) {
@@ -118,6 +118,15 @@ export async function getCurrentUser(): Promise<UserType> {
   }
   
   return data;
+}
+
+/**
+ * 刷新当前用户信息（强制绕过缓存）
+ */
+export async function refreshCurrentUser(): Promise<UserType> {
+  // 先清除缓存
+  api.clearCache();
+  return getCurrentUser();
 }
 
 /**

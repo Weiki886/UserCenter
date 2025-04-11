@@ -73,6 +73,14 @@ mybatis-plus:
       # 逻辑未删除值(0)
       logic-not-delete-value: 0
 
+# 管理端点配置
+management:
+  health:
+    redis:
+      enabled: ${spring.redis.enabled}  # 与Redis功能开关保持一致
+    redisson:
+      enabled: ${spring.redis.enabled}  # 与Redis功能开关保持一致
+
 logging:
   level:
     com:

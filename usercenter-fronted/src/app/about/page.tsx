@@ -42,9 +42,9 @@ export default function About() {
           <Card style={{ marginBottom: '30px', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
             <Title level={3}>系统架构</Title>
             <Paragraph style={{ fontSize: '16px' }}>
-              系统采用前后端分离架构，前端使用React和Ant Design构建友好的用户界面，
-              后端采用Java Spring Boot提供稳定可靠的API服务。数据存储使用MySQL，
-              确保数据的持久性和一致性。
+              系统采用前后端分离架构，前端使用React和Ant Design构建友好的用户界面，后端采用Java Spring Boot提供稳定可靠的API服务。
+              数据存储使用MySQL，确保数据的持久性和一致性。
+              系统支持集群部署，可根据业务需求灵活扩展，满足不同规模的用户管理需求。
             </Paragraph>
           </Card>
           
@@ -67,7 +67,8 @@ export default function About() {
                 <li>响应式设计：适配各种屏幕尺寸，提供一致的用户体验</li>
                 <li>模块化开发：系统组件化，便于维护和扩展</li>
                 <li>RESTful API：标准化的API设计，便于集成和对接</li>
-                <li>安全性：采用多重安全机制，保护用户数据安全</li>
+                <li>多层次安全：采用多重安全机制，保护用户数据安全</li>
+                <li>分布式支持：支持分布式部署和水平扩展，满足高并发场景</li>
               </ul>
             </Paragraph>
           </Card>

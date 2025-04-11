@@ -1,7 +1,7 @@
 'use client';
 
-import React, { createContext, useState, useContext, useEffect, ReactNode } from 'react';
-import { UserType, getCurrentUser } from '@/services/userService';
+import React, { createContext, useState, useContext, useEffect, ReactNode, useMemo, useCallback } from 'react';
+import { UserType, getCurrentUser, refreshCurrentUser } from '@/services/userService';
 
 // 定义Context数据结构
 interface UserContextType {
@@ -22,11 +22,11 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 刷新用户信息的方法
-  const refreshUserInfo = async () => {
+  // 使用useCallback优化刷新用户信息的方法
+  const refreshUserInfo = useCallback(async () => {
     try {
       setLoading(true);
-      const user = await getCurrentUser();
+      const user = await refreshCurrentUser(); // 使用不带缓存的刷新
       if (user) {
         setCurrentUser(user as UserType);
       }
@@ -36,15 +36,38 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   // 组件挂载时获取用户信息
   useEffect(() => {
-    refreshUserInfo();
+    // 使用缓存版本获取用户信息
+    async function fetchUserData() {
+      try {
+        setLoading(true);
+        const user = await getCurrentUser();
+        if (user) {
+          setCurrentUser(user as UserType);
+        }
+      } catch (error) {
+        console.log('获取用户信息失败');
+        setCurrentUser(null);
+      } finally {
+        setLoading(false);
+      }
+    }
+    
+    fetchUserData();
   }, []);
 
+  // 使用useMemo优化context值，避免不必要的重新渲染
+  const contextValue = useMemo(() => ({
+    currentUser,
+    loading,
+    refreshUserInfo
+  }), [currentUser, loading, refreshUserInfo]);
+
   return (
-    <UserContext.Provider value={{ currentUser, loading, refreshUserInfo }}>
+    <UserContext.Provider value={contextValue}>
       {children}
     </UserContext.Provider>
   );

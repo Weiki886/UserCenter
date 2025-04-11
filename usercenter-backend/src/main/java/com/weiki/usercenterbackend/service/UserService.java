@@ -90,4 +90,30 @@ public interface UserService {
      * @return 是否成功
      */
     boolean updatePassword(String oldPassword, String newPassword, String checkPassword, HttpServletRequest request);
+    
+    /**
+     * 封禁用户
+     * @param userId 用户ID
+     * @param banDays 封禁天数，0表示永久封禁
+     * @param reason 封禁原因
+     * @param request HTTP请求
+     * @return 是否成功
+     */
+    boolean banUser(long userId, int banDays, String reason, HttpServletRequest request);
+    
+    /**
+     * 解封用户
+     * @param userId 用户ID
+     * @param request HTTP请求
+     * @return 是否成功
+     */
+    boolean unbanUser(long userId, HttpServletRequest request);
+    
+    /**
+     * 获取封禁用户列表
+     * @param current 当前页
+     * @param pageSize 页面大小
+     * @return 封禁用户数据
+     */
+    PageVO<User> getBannedUserPage(long current, long pageSize);
 } 

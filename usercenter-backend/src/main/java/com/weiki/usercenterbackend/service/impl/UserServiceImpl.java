@@ -15,6 +15,8 @@ import org.springframework.util.DigestUtils;
 
 import javax.annotation.Resource;
 import javax.servlet.http.HttpServletRequest;
+import java.util.Calendar;
+import java.util.Date;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -145,7 +147,29 @@ public class UserServiceImpl implements UserService {
             log.info("user login failed, userAccount cannot match userPassword");
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
         }
-
+        
+        // 检查用户是否被封禁
+        if (user.getIsBanned() != null && user.getIsBanned() == 1) {
+            Date now = new Date();
+            
+            // 检查是否永久封禁（unbanDate为null）
+            if (user.getUnbanDate() == null) {
+                throw new BusinessException(ErrorCode.FORBIDDEN, "账号已被永久封禁，原因：" + user.getBanReason());
+            }
+            
+            // 检查封禁是否已过期
+            if (now.before(user.getUnbanDate())) {
+                // 封禁未过期
+                throw new BusinessException(ErrorCode.FORBIDDEN, 
+                    "账号封禁至" + user.getUnbanDate() + "，原因：" + user.getBanReason());
+            } else {
+                // 封禁已过期，自动解封
+                user.setIsBanned(0);
+                user.setUnbanDate(null);
+                userMapper.updateById(user);
+            }
+        }
+        
         // 3. 用户脱敏
         User safetyUser = getSafetyUser(user);
 
@@ -176,6 +200,9 @@ public class UserServiceImpl implements UserService {
         safetyUser.setEmail(originUser.getEmail());
         safetyUser.setUserRole(originUser.getUserRole());
         safetyUser.setUserStatus(originUser.getUserStatus());
+        safetyUser.setIsBanned(originUser.getIsBanned());
+        safetyUser.setUnbanDate(originUser.getUnbanDate());
+        safetyUser.setBanReason(originUser.getBanReason());
         safetyUser.setCreateTime(originUser.getCreateTime());
         return safetyUser;
     }
@@ -360,5 +387,123 @@ public class UserServiceImpl implements UserService {
         }
         
         return result > 0;
+    }
+
+    /**
+     * 封禁用户
+     *
+     * @param userId  用户ID
+     * @param banDays 封禁天数，0表示永久封禁
+     * @param reason  封禁原因
+     * @param request HTTP请求
+     * @return 是否成功
+     */
+    @Override
+    public boolean banUser(long userId, int banDays, String reason, HttpServletRequest request) {
+        // 校验封禁原因
+        if (StringUtils.isBlank(reason)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "封禁原因不能为空");
+        }
+        
+        // 获取要封禁的用户
+        User user = getById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+        }
+        
+        // 检查用户是否已被封禁
+        if (user.getIsBanned() != null && user.getIsBanned() == 1) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "用户已被封禁");
+        }
+        
+        // 设置封禁状态
+        user.setIsBanned(1);
+        user.setBanReason(reason);
+        
+        // 设置解封日期
+        if (banDays > 0) {
+            Calendar calendar = Calendar.getInstance();
+            calendar.add(Calendar.DAY_OF_MONTH, banDays);
+            user.setUnbanDate(calendar.getTime());
+        } else {
+            // 永久封禁
+            user.setUnbanDate(null);
+        }
+        
+        // 更新用户
+        int result = userMapper.updateById(user);
+        
+        // 记录操作日志
+        log.info("用户 {} 被封禁，封禁天数：{}，原因：{}", userId, banDays, reason);
+        
+        return result > 0;
+    }
+    
+    /**
+     * 解封用户
+     *
+     * @param userId  用户ID
+     * @param request HTTP请求
+     * @return 是否成功
+     */
+    @Override
+    public boolean unbanUser(long userId, HttpServletRequest request) {
+        // 获取要解封的用户
+        User user = getById(userId);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "用户不存在");
+        }
+        
+        // 检查用户是否已被封禁
+        if (user.getIsBanned() == null || user.getIsBanned() != 1) {
+            throw new BusinessException(ErrorCode.OPERATION_ERROR, "用户未被封禁");
+        }
+        
+        // 解除封禁
+        user.setIsBanned(0);
+        user.setUnbanDate(null);
+        
+        // 更新用户
+        int result = userMapper.updateById(user);
+        
+        // 记录操作日志
+        log.info("用户 {} 被解封", userId);
+        
+        return result > 0;
+    }
+    
+    /**
+     * 获取封禁用户列表
+     *
+     * @param current  当前页
+     * @param pageSize 页面大小
+     * @return 封禁用户数据
+     */
+    @Override
+    public PageVO<User> getBannedUserPage(long current, long pageSize) {
+        // 边界条件处理
+        if (current < 1) {
+            current = 1;
+        }
+        if (pageSize < 1 || pageSize > 100) {
+            pageSize = 10;
+        }
+        
+        // 计算偏移量
+        int offset = (int) ((current - 1) * pageSize);
+        
+        // 查询被封禁的用户数据
+        List<User> userList = userMapper.listBannedUsersByPage(offset, (int) pageSize);
+        
+        // 查询总数
+        long total = userMapper.countBannedUsers();
+        
+        // 用户脱敏处理
+        List<User> safetyUserList = userList.stream()
+                .map(this::getSafetyUser)
+                .collect(Collectors.toList());
+        
+        // 封装结果
+        return new PageVO<>(safetyUserList, total, current, pageSize);
     }
 } 

@@ -79,4 +79,18 @@ public interface UserMapper {
      * @return 用户总数
      */
     long countUsers(String username, String userAccount, Integer userRole);
+
+    /**
+     * 分页获取封禁用户列表
+     * @param offset 偏移量
+     * @param pageSize 页面大小
+     * @return 封禁用户列表
+     */
+    List<User> listBannedUsersByPage(int offset, int pageSize);
+
+    /**
+     * 获取封禁用户总数
+     * @return 封禁用户总数
+     */
+    long countBannedUsers();
 } 

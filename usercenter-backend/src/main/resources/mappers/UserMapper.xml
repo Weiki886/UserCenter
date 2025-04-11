@@ -12,6 +12,9 @@
         <result column="phone" property="phone"/>
         <result column="email" property="email"/>
         <result column="user_status" property="userStatus"/>
+        <result column="is_banned" property="isBanned"/>
+        <result column="unban_date" property="unbanDate"/>
+        <result column="ban_reason" property="banReason"/>
         <result column="create_time" property="createTime"/>
         <result column="update_time" property="updateTime"/>
         <result column="is_delete" property="isDelete"/>
@@ -19,7 +22,7 @@
     </resultMap>
 
     <sql id="Base_Column_List">
-        id, username, user_account, avatar_url, gender, user_password, phone, email, user_status, create_time, update_time, is_delete, user_role
+        id, username, user_account, avatar_url, gender, user_password, phone, email, user_status, is_banned, unban_date, ban_reason, create_time, update_time, is_delete, user_role
     </sql>
 
     <select id="selectById" resultMap="BaseResultMap" parameterType="java.lang.Long">
@@ -82,6 +85,15 @@
             <if test="userStatus != null">
                 user_status = #{userStatus},
             </if>
+            <if test="isBanned != null">
+                is_banned = #{isBanned},
+            </if>
+            <if test="unbanDate != null">
+                unban_date = #{unbanDate},
+            </if>
+            <if test="banReason != null">
+                ban_reason = #{banReason},
+            </if>
             <if test="userRole != null">
                 user_role = #{userRole},
             </if>
@@ -130,5 +142,20 @@
                 and user_role = #{userRole}
             </if>
         </where>
+    </select>
+    
+    <select id="listBannedUsersByPage" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from user
+        where is_delete = 0 and is_banned = 1
+        order by id desc
+        limit #{offset}, #{pageSize}
+    </select>
+    
+    <select id="countBannedUsers" resultType="java.lang.Long">
+        select count(*)
+        from user
+        where is_delete = 0 and is_banned = 1
     </select>
 </mapper> 

@@ -55,6 +55,26 @@ public class User {
     private Integer userStatus;
 
     /**
+     * 解封时间
+     */
+    private Date unbannedTime;
+    
+    /**
+     * 是否被封禁 0 - 否 1 - 是
+     */
+    private Integer isBanned;
+    
+    /**
+     * 解封日期，null表示永久封禁
+     */
+    private Date unbanDate;
+    
+    /**
+     * 封禁原因
+     */
+    private String banReason;
+
+    /**
      * 创建时间
      */
     private Date createTime;

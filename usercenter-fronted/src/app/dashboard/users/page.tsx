@@ -1,11 +1,12 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Table, Button, Space, Input, Select, message, Popconfirm, Avatar, Image } from 'antd';
-import { SearchOutlined, DeleteOutlined, EditOutlined, UserOutlined } from '@ant-design/icons';
-import { getUserPage, deleteUser, UserType, PageVO } from '@/services/userService';
+import { Table, Button, Space, Input, Select, message, Popconfirm, Avatar, Image, Tag, Tooltip, Modal, Form, InputNumber } from 'antd';
+import { SearchOutlined, DeleteOutlined, EditOutlined, UserOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
+import { getUserPage, deleteUser, UserType, PageVO, banUser, unbanUser } from '@/services/userService';
 import UserEditModal from '@/components/UserEditModal';
 import { formatDateTime } from '@/utils/dateUtils';
+import TextArea from 'antd/lib/input/TextArea';
 
 const { Option } = Select;
 
@@ -19,6 +20,9 @@ const UserManagement = () => {
   const [userRole, setUserRole] = useState<number | undefined>(undefined);
   const [editModalVisible, setEditModalVisible] = useState(false);
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
+  const [banModalVisible, setBanModalVisible] = useState(false);
+  const [banForm] = Form.useForm();
+  const [userToBan, setUserToBan] = useState<UserType | null>(null);
 
   const fetchUsers = async () => {
     try {
@@ -71,6 +75,41 @@ const UserManagement = () => {
   const handleEditSuccess = () => {
     setEditModalVisible(false);
     fetchUsers();
+  };
+
+  const handleBan = (user: UserType) => {
+    setUserToBan(user);
+    setBanModalVisible(true);
+    banForm.resetFields();
+  };
+
+  const handleBanSubmit = async () => {
+    try {
+      if (!userToBan) return;
+      
+      const values = await banForm.validateFields();
+      await banUser({
+        userId: userToBan.id,
+        banDays: values.banDays,
+        reason: values.reason,
+      });
+      
+      message.success('用户封禁成功');
+      setBanModalVisible(false);
+      fetchUsers();
+    } catch (error: any) {
+      message.error(error.message || '封禁用户失败');
+    }
+  };
+
+  const handleUnban = async (userId: number) => {
+    try {
+      await unbanUser(userId);
+      message.success('用户解封成功');
+      fetchUsers();
+    } catch (error: any) {
+      message.error(error.message || '解封用户失败');
+    }
   };
 
   const columns = [
@@ -134,7 +173,34 @@ const UserManagement = () => {
       title: '状态',
       dataIndex: 'userStatus',
       key: 'userStatus',
-      render: (status: number) => (status === 0 ? '正常' : '封禁'),
+      render: (status: number) => {
+        if (status === 0) {
+          return <Tag color="success">正常</Tag>;
+        } else if (status === 1) {
+          return <Tag color="default">已停用</Tag>;
+        }
+        return <Tag color="default">未知</Tag>;
+      },
+    },
+    {
+      title: '封禁状态',
+      dataIndex: 'isBanned',
+      key: 'isBanned',
+      render: (isBanned: number, record: UserType) => {
+        if (isBanned === 1) {
+          const unbanDate = record.unbanDate;
+          return unbanDate ? (
+            <Tooltip title={`解封日期: ${formatDateTime(unbanDate)}\n原因: ${record.banReason}`}>
+              <Tag color="error">临时封禁</Tag>
+            </Tooltip>
+          ) : (
+            <Tooltip title={`原因: ${record.banReason}`}>
+              <Tag color="error">永久封禁</Tag>
+            </Tooltip>
+          );
+        }
+        return <Tag color="success">正常</Tag>;
+      },
     },
     {
       title: '角色',
@@ -160,6 +226,24 @@ const UserManagement = () => {
           >
             编辑
           </Button>
+          {record.isBanned === 1 ? (
+            <Button
+              type="primary"
+              icon={<UnlockOutlined />}
+              onClick={() => handleUnban(record.id)}
+            >
+              解封
+            </Button>
+          ) : (
+            <Button
+              type="primary"
+              danger
+              icon={<LockOutlined />}
+              onClick={() => handleBan(record)}
+            >
+              封禁
+            </Button>
+          )}
           <Popconfirm
             title="确定要删除该用户吗?"
             onConfirm={() => handleDelete(record.id)}
@@ -223,6 +307,33 @@ const UserManagement = () => {
         onSuccess={handleEditSuccess}
         user={currentUser}
       />
+      
+      <Modal
+        title="封禁用户"
+        open={banModalVisible}
+        onCancel={() => setBanModalVisible(false)}
+        onOk={handleBanSubmit}
+        okText="确认封禁"
+        cancelText="取消"
+      >
+        <Form form={banForm} layout="vertical">
+          <Form.Item
+            name="banDays"
+            label="封禁天数"
+            rules={[{ required: true, message: '请输入封禁天数' }]}
+            tooltip="设置为0表示永久封禁"
+          >
+            <InputNumber min={0} placeholder="封禁天数（0表示永久封禁）" style={{ width: '100%' }} />
+          </Form.Item>
+          <Form.Item
+            name="reason"
+            label="封禁原因"
+            rules={[{ required: true, message: '请输入封禁原因' }]}
+          >
+            <TextArea rows={4} placeholder="请输入封禁原因" />
+          </Form.Item>
+        </Form>
+      </Modal>
     </div>
   );
 };

@@ -22,6 +22,9 @@ export interface UserType {
   email?: string;
   userRole: number;
   userStatus: number;
+  isBanned?: number;
+  unbanDate?: string;
+  banReason?: string;
   createTime: Date;
 }
 
@@ -60,6 +63,12 @@ export interface PasswordUpdateParams {
   oldPassword: string;
   newPassword: string;
   checkPassword: string;
+}
+
+export interface UserBanParams {
+  userId: number;
+  banDays: number;
+  reason: string;
 }
 
 /**
@@ -198,6 +207,69 @@ export async function updatePassword(params: PasswordUpdateParams): Promise<bool
     return data;
   } catch (error) {
     console.error('修改密码失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 封禁用户（仅管理员）
+ * @param params 
+ */
+export async function banUser(params: UserBanParams): Promise<boolean> {
+  try {
+    const response = await api.post<BaseResponse<boolean>>('/user/ban/ban', params);
+    const { code, data, message, description } = response.data;
+    
+    if (code !== 0) {
+      throw new Error(description || message || '封禁用户失败');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('封禁用户失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 解封用户（仅管理员）
+ * @param userId 
+ */
+export async function unbanUser(userId: number): Promise<boolean> {
+  try {
+    const response = await api.post<BaseResponse<boolean>>('/user/ban/unban', { userId });
+    const { code, data, message, description } = response.data;
+    
+    if (code !== 0) {
+      throw new Error(description || message || '解封用户失败');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('解封用户失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 获取封禁用户列表（仅管理员）
+ * @param current 
+ * @param pageSize 
+ */
+export async function getBannedUsers(current: number = 1, pageSize: number = 10): Promise<PageVO<UserType>> {
+  try {
+    const response = await api.get<BaseResponse<PageVO<UserType>>>('/user/ban/list', { 
+      params: { current, pageSize } 
+    });
+    const { code, data, message, description } = response.data;
+    
+    if (code !== 0) {
+      throw new Error(description || message || '获取封禁用户列表失败');
+    }
+    
+    return data;
+  } catch (error) {
+    console.error('获取封禁用户列表失败:', error);
     throw error;
   }
 } 

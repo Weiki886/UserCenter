@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Table, Button, Space, Input, Select, message, Popconfirm, Avatar, Image, Tag, Tooltip, Modal, Form, InputNumber } from 'antd';
 import { SearchOutlined, DeleteOutlined, EditOutlined, UserOutlined, LockOutlined, UnlockOutlined } from '@ant-design/icons';
 import { getUserPage, deleteUser, UserType, PageVO, banUser, unbanUser } from '@/services/userService';
@@ -24,7 +24,7 @@ const UserManagement = () => {
   const [banForm] = Form.useForm();
   const [userToBan, setUserToBan] = useState<UserType | null>(null);
 
-  const fetchUsers = async () => {
+  const fetchUsers = useCallback(async () => {
     try {
       setLoading(true);
       const pageData = await getUserPage({
@@ -42,11 +42,11 @@ const UserManagement = () => {
     } finally {
       setLoading(false);
     }
-  };
+  }, [current, pageSize, userAccount, userRole]);
 
   useEffect(() => {
     fetchUsers();
-  }, [current, pageSize]);
+  }, [fetchUsers]);
 
   // 当筛选条件变化时不自动触发，而是等用户点击搜索按钮
   const handleSearch = () => {
@@ -58,6 +58,9 @@ const UserManagement = () => {
     try {
       await deleteUser(id);
       message.success('删除用户成功');
+      
+      // 优化：先在本地更新状态，再异步刷新完整列表
+      setUsers(prevUsers => prevUsers.filter(user => user.id !== id));
       fetchUsers();
     } catch (error: any) {
       // 增强错误处理，显示更具体的错误信息
@@ -72,8 +75,19 @@ const UserManagement = () => {
     setEditModalVisible(true);
   };
 
-  const handleEditSuccess = () => {
+  const handleEditSuccess = (updatedUser?: UserType) => {
     setEditModalVisible(false);
+    
+    // 如果返回了更新后的用户数据，则先在本地更新状态
+    if (updatedUser) {
+      setUsers(prevUsers => 
+        prevUsers.map(user => 
+          user.id === updatedUser.id ? updatedUser : user
+        )
+      );
+    }
+    
+    // 然后异步刷新完整数据
     fetchUsers();
   };
 
@@ -96,6 +110,24 @@ const UserManagement = () => {
       
       message.success('用户封禁成功');
       setBanModalVisible(false);
+      
+      // 优化：本地立即更新状态
+      const unbanTimestamp = values.banDays ? new Date(Date.now() + values.banDays * 24 * 60 * 60 * 1000).toISOString() : undefined;
+      setUsers(prevUsers => 
+        prevUsers.map(user => {
+          if (user.id === userToBan.id) {
+            return {
+              ...user,
+              isBanned: 1,
+              banReason: values.reason,
+              unbanDate: unbanTimestamp
+            };
+          }
+          return user;
+        })
+      );
+      
+      // 然后在后台异步刷新完整数据
       fetchUsers();
     } catch (error: any) {
       message.error(error.message || '封禁用户失败');
@@ -106,6 +138,23 @@ const UserManagement = () => {
     try {
       await unbanUser(userId);
       message.success('用户解封成功');
+      
+      // 优化：本地立即更新状态
+      setUsers(prevUsers => 
+        prevUsers.map(user => {
+          if (user.id === userId) {
+            return {
+              ...user,
+              isBanned: 0,
+              banReason: undefined,
+              unbanDate: undefined
+            };
+          }
+          return user;
+        })
+      );
+      
+      // 然后在后台异步刷新完整数据
       fetchUsers();
     } catch (error: any) {
       message.error(error.message || '解封用户失败');
@@ -311,26 +360,23 @@ const UserManagement = () => {
       <Modal
         title="封禁用户"
         open={banModalVisible}
-        onCancel={() => setBanModalVisible(false)}
         onOk={handleBanSubmit}
-        okText="确认封禁"
-        cancelText="取消"
+        onCancel={() => setBanModalVisible(false)}
       >
         <Form form={banForm} layout="vertical">
           <Form.Item
             name="banDays"
-            label="封禁天数"
+            label="封禁天数 (0为永久封禁)"
             rules={[{ required: true, message: '请输入封禁天数' }]}
-            tooltip="设置为0表示永久封禁"
           >
-            <InputNumber min={0} placeholder="封禁天数（0表示永久封禁）" style={{ width: '100%' }} />
+            <InputNumber min={0} style={{ width: '100%' }} />
           </Form.Item>
           <Form.Item
             name="reason"
             label="封禁原因"
             rules={[{ required: true, message: '请输入封禁原因' }]}
           >
-            <TextArea rows={4} placeholder="请输入封禁原因" />
+            <TextArea rows={4} />
           </Form.Item>
         </Form>
       </Modal>

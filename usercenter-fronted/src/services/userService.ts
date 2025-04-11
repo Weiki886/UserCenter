@@ -112,6 +112,10 @@ export async function logout(): Promise<number> {
     throw new Error(description || message || '注销失败');
   }
   
+  // 清除所有用户相关的缓存
+  api.invalidateCache('/user/current');
+  api.invalidateCache('/user/list');
+  
   return data;
 }
 
@@ -134,7 +138,7 @@ export async function getCurrentUser(): Promise<UserType> {
  */
 export async function refreshCurrentUser(): Promise<UserType> {
   // 先清除缓存
-  api.clearCache();
+  api.invalidateCache('/user/current');
   return getCurrentUser();
 }
 
@@ -150,6 +154,8 @@ export async function deleteUser(id: number): Promise<boolean> {
     throw new Error(description || message || '删除用户失败');
   }
   
+  // 删除用户后清除用户列表缓存
+  api.invalidateCache('/user/list');
   return data;
 }
 
@@ -157,21 +163,26 @@ export async function deleteUser(id: number): Promise<boolean> {
  * 更新用户信息
  * @param params 
  */
-export async function updateUser(params: UserUpdateParams): Promise<boolean> {
+export async function updateUser(params: UserUpdateParams): Promise<UserType> {
   try {
-    console.log('Enviando solicitud de actualización:', params);
-    const response = await api.post<BaseResponse<boolean>>('/user/update', params);
-    console.log('Respuesta del servidor:', response.data);
+    const response = await api.post<BaseResponse<UserType>>('/user/update', params);
     const { code, data, message, description } = response.data;
     
     if (code !== 0) {
-      console.error('Error al actualizar usuario:', { code, message, description });
       throw new Error(description || message || '更新用户信息失败');
     }
     
+    // 如果更新的是当前登录用户，清除用户信息缓存
+    if (params.id) {
+      api.invalidateCache('/user/current');
+    }
+    
+    // 清除用户列表缓存
+    api.invalidateCache('/user/list');
+    
     return data;
   } catch (error) {
-    console.error('Error en la llamada updateUser:', error);
+    console.error('更新用户信息失败:', error);
     throw error;
   }
 }
@@ -224,6 +235,10 @@ export async function banUser(params: UserBanParams): Promise<boolean> {
       throw new Error(description || message || '封禁用户失败');
     }
     
+    // 清除用户列表和封禁用户列表缓存
+    api.invalidateCache('/user/list');
+    api.invalidateCache('/user/ban/list');
+    
     return data;
   } catch (error) {
     console.error('封禁用户失败:', error);
@@ -243,6 +258,10 @@ export async function unbanUser(userId: number): Promise<boolean> {
     if (code !== 0) {
       throw new Error(description || message || '解封用户失败');
     }
+    
+    // 清除用户列表和封禁用户列表缓存
+    api.invalidateCache('/user/list');
+    api.invalidateCache('/user/ban/list');
     
     return data;
   } catch (error) {

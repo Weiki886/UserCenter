@@ -7,7 +7,8 @@ import { UserType, getCurrentUser, refreshCurrentUser } from '@/services/userSer
 interface UserContextType {
   currentUser: UserType | null;
   loading: boolean;
-  refreshUserInfo: () => Promise<void>;
+  refreshUserInfo: (silent?: boolean) => Promise<void>;
+  clearUserInfo: () => void; // 新增清除用户信息的方法
 }
 
 // 创建Context
@@ -15,6 +16,7 @@ const UserContext = createContext<UserContextType>({
   currentUser: null,
   loading: true,
   refreshUserInfo: async () => {},
+  clearUserInfo: () => {},
 });
 
 // 创建Provider组件
@@ -22,19 +24,25 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
 
-  // 使用useCallback优化刷新用户信息的方法
-  const refreshUserInfo = useCallback(async () => {
+  // 清除用户信息方法
+  const clearUserInfo = useCallback(() => {
+    setCurrentUser(null);
+  }, []);
+
+  // 使用useCallback优化刷新用户信息的方法，添加silent参数支持静默刷新
+  const refreshUserInfo = useCallback(async (silent: boolean = false) => {
     try {
-      setLoading(true);
+      if (!silent) setLoading(true);
       const user = await refreshCurrentUser(); // 使用不带缓存的刷新
       if (user) {
         setCurrentUser(user as UserType);
       }
     } catch (error) {
       console.log('获取用户信息失败');
+      // 如果获取用户信息失败，视为用户已登出
       setCurrentUser(null);
     } finally {
-      setLoading(false);
+      if (!silent) setLoading(false);
     }
   }, []);
 
@@ -58,13 +66,26 @@ export function UserProvider({ children }: { children: ReactNode }) {
     
     fetchUserData();
   }, []);
+  
+  // 定期静默刷新用户信息
+  useEffect(() => {
+    // 如果用户已登录，每5分钟静默刷新一次用户信息
+    if (currentUser) {
+      const refreshInterval = setInterval(() => {
+        refreshUserInfo(true); // 静默刷新
+      }, 5 * 60 * 1000);
+      
+      return () => clearInterval(refreshInterval);
+    }
+  }, [currentUser, refreshUserInfo]);
 
   // 使用useMemo优化context值，避免不必要的重新渲染
   const contextValue = useMemo(() => ({
     currentUser,
     loading,
-    refreshUserInfo
-  }), [currentUser, loading, refreshUserInfo]);
+    refreshUserInfo,
+    clearUserInfo,
+  }), [currentUser, loading, refreshUserInfo, clearUserInfo]);
 
   return (
     <UserContext.Provider value={contextValue}>
@@ -73,7 +94,5 @@ export function UserProvider({ children }: { children: ReactNode }) {
   );
 }
 
-// 自定义Hook简化Context使用
-export function useUser() {
-  return useContext(UserContext);
-} 
+// 自定义Hook便于组件使用Context
+export const useUser = () => useContext(UserContext); 

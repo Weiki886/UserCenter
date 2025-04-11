@@ -15,7 +15,7 @@ interface NavItemProps {
 
 export default function NavBar({ activeItem }: { activeItem: string }) {
   const router = useRouter();
-  const { currentUser } = useUser();
+  const { currentUser, clearUserInfo } = useUser();
 
   const navItems = [
     { title: '首页', link: '/', active: activeItem === 'home' },
@@ -30,6 +30,25 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
     if (item === 'settings' && activeItem === 'settings') return true;
     if (item === 'change-password' && activeItem === 'change-password') return true;
     return false;
+  };
+
+  // 处理退出登录
+  const handleLogout = async () => {
+    try {
+      // 先调用后端登出API
+      await logout();
+      
+      // 立即清除本地用户状态
+      clearUserInfo();
+      
+      // 在用户状态清除后再跳转到登录页
+      router.push('/auth/login');
+    } catch (error) {
+      console.error('退出登录失败:', error);
+      // 即使API调用失败，也应清除本地状态并跳转
+      clearUserInfo();
+      router.push('/auth/login');
+    }
   };
 
   return (
@@ -138,11 +157,7 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
                   key: '4',
                   icon: <LogoutOutlined />,
                   label: '退出登录',
-                  onClick: () => {
-                    logout().then(() => {
-                      router.push('/auth/login');
-                    });
-                  },
+                  onClick: handleLogout,
                 },
               ],
             }}>

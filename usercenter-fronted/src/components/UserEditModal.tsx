@@ -7,7 +7,7 @@ import { UserType, updateUser } from '@/services/userService';
 interface UserEditModalProps {
   visible: boolean;
   onCancel: () => void;
-  onSuccess: () => void;
+  onSuccess: (updatedUser?: UserType) => void;
   user: UserType | null;
 }
 
@@ -35,7 +35,7 @@ const UserEditModal: React.FC<UserEditModalProps> = ({
       });
       setAvatarPreview(user.avatarUrl);
       
-      // Si ya existe un avatar, agregarlo a la lista de archivos
+      // 如果已存在头像，将其添加到文件列表
       if (user.avatarUrl) {
         setFileList([
           {
@@ -56,24 +56,27 @@ const UserEditModal: React.FC<UserEditModalProps> = ({
       const values = await form.validateFields();
       setLoading(true);
       
-      // Filtrar campos vacíos
+      // 过滤空值
       const filteredValues = Object.entries(values).reduce((acc, [key, value]) => {
-        // Solo incluir campos con valores no vacíos
+        // 只包含非空值
         if (value !== "" && value !== undefined && value !== null) {
           acc[key] = value;
         }
         return acc;
       }, {} as Record<string, any>);
       
-      console.log('Valores enviados al servidor:', { id: user?.id, ...filteredValues });
-      
-      await updateUser({
+      const updateData = {
         id: user?.id,
         ...filteredValues,
-      });
+      };
+      
+      // 获取更新后的用户数据
+      const updatedUserData = await updateUser(updateData);
       
       message.success('更新用户信息成功');
-      onSuccess();
+      
+      // 返回API返回的最新用户数据，确保页面显示最新状态
+      onSuccess(updatedUserData);
     } catch (error: any) {
       const errorMsg = error.message || '更新用户信息失败';
       message.error(errorMsg);

@@ -8,6 +8,14 @@ const api = axios.create({
   withCredentials: true, // 跨域请求时是否需要使用凭证
 });
 
+// 定义API扩展类型
+interface ApiWithCache extends AxiosInstance {
+  getCached<T>(url: string, config?: any): Promise<AxiosResponse<T>>;
+  clearCache(): void;
+  invalidateCache(url: string): void;
+  invalidateCachePattern(pattern: RegExp): void;
+}
+
 // 简单的请求缓存实现
 const cache = new Map();
 const CACHE_DURATION = 60000; // 缓存有效期1分钟
@@ -47,12 +55,6 @@ api.interceptors.response.use(
   }
 );
 
-// 扩展axios实例，添加缓存功能
-interface ApiWithCache extends AxiosInstance {
-  getCached<T = any>(url: string, config?: any): Promise<AxiosResponse<T>>;
-  clearCache(): void;
-}
-
 const apiWithCache = api as ApiWithCache;
 
 // 添加缓存方法
@@ -81,8 +83,29 @@ apiWithCache.getCached = async function<T>(url: string, config?: any): Promise<A
   return response;
 };
 
+// 清除所有缓存
 apiWithCache.clearCache = function() {
   cache.clear();
+};
+
+// 清除特定URL的缓存
+apiWithCache.invalidateCache = function(url: string) {
+  // 使用Array.from来避免直接迭代Map keys
+  Array.from(cache.keys()).forEach(key => {
+    if (key.startsWith(url)) {
+      cache.delete(key);
+    }
+  });
+};
+
+// 根据正则表达式清除缓存
+apiWithCache.invalidateCachePattern = function(pattern: RegExp) {
+  // 使用Array.from来避免直接迭代Map keys
+  Array.from(cache.keys()).forEach(key => {
+    if (pattern.test(key)) {
+      cache.delete(key);
+    }
+  });
 };
 
 export default apiWithCache; 

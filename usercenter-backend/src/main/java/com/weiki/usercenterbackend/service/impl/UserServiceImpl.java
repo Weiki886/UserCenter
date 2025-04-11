@@ -21,6 +21,7 @@ import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
+import java.text.SimpleDateFormat;
 
 import static com.weiki.usercenterbackend.constant.UserConstant.DEFAULT_ROLE;
 import static com.weiki.usercenterbackend.constant.UserConstant.USER_LOGIN_STATE;
@@ -151,6 +152,7 @@ public class UserServiceImpl implements UserService {
         // 检查用户是否被封禁
         if (user.getIsBanned() != null && user.getIsBanned() == 1) {
             Date now = new Date();
+            SimpleDateFormat dateFormat = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss");
             
             // 检查是否永久封禁（unbanDate为null）
             if (user.getUnbanDate() == null) {
@@ -160,8 +162,9 @@ public class UserServiceImpl implements UserService {
             // 检查封禁是否已过期
             if (now.before(user.getUnbanDate())) {
                 // 封禁未过期
+                String formattedDate = dateFormat.format(user.getUnbanDate());
                 throw new BusinessException(ErrorCode.FORBIDDEN, 
-                    "账号封禁至" + user.getUnbanDate() + "，原因：" + user.getBanReason());
+                    "账号封禁至" + formattedDate + "，原因：" + user.getBanReason());
             } else {
                 // 封禁已过期，自动解封
                 user.setIsBanned(0);

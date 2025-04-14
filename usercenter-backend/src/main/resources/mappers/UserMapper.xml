@@ -1,0 +1,161 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.weiki.usercenterbackend.mapper.UserMapper">
+
+    <resultMap id="BaseResultMap" type="com.weiki.usercenterbackend.model.domain.User">
+        <id column="id" property="id"/>
+        <result column="username" property="username"/>
+        <result column="user_account" property="userAccount"/>
+        <result column="avatar_url" property="avatarUrl"/>
+        <result column="gender" property="gender"/>
+        <result column="user_password" property="userPassword"/>
+        <result column="phone" property="phone"/>
+        <result column="email" property="email"/>
+        <result column="user_status" property="userStatus"/>
+        <result column="is_banned" property="isBanned"/>
+        <result column="unban_date" property="unbanDate"/>
+        <result column="ban_reason" property="banReason"/>
+        <result column="create_time" property="createTime"/>
+        <result column="update_time" property="updateTime"/>
+        <result column="is_delete" property="isDelete"/>
+        <result column="user_role" property="userRole"/>
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id, username, user_account, avatar_url, gender, user_password, phone, email, user_status, is_banned, unban_date, ban_reason, create_time, update_time, is_delete, user_role
+    </sql>
+
+    <select id="selectById" resultMap="BaseResultMap" parameterType="java.lang.Long">
+        select
+        <include refid="Base_Column_List"/>
+        from user
+        where id = #{id} and is_delete = 0
+    </select>
+
+    <select id="selectByUserAccount" resultMap="BaseResultMap" parameterType="java.lang.String">
+        select
+        <include refid="Base_Column_List"/>
+        from user
+        where user_account = #{userAccount} and is_delete = 0
+    </select>
+    
+    <select id="selectByUserAccountWithDeleted" resultMap="BaseResultMap" parameterType="java.lang.String">
+        select
+        <include refid="Base_Column_List"/>
+        from user
+        where user_account = #{userAccount}
+    </select>
+    
+    <delete id="deletePhysically" parameterType="java.lang.Long">
+        delete from user
+        where id = #{id}
+    </delete>
+
+    <insert id="insert" parameterType="com.weiki.usercenterbackend.model.domain.User" useGeneratedKeys="true" keyProperty="id">
+        insert into user
+        (username, user_account, avatar_url, gender, user_password, phone, email, user_status, user_role)
+        values
+        (#{username}, #{userAccount}, #{avatarUrl}, #{gender}, #{userPassword}, #{phone}, #{email}, #{userStatus}, #{userRole})
+    </insert>
+
+    <update id="updateById" parameterType="com.weiki.usercenterbackend.model.domain.User">
+        update user
+        <set>
+            <if test="username != null">
+                username = #{username},
+            </if>
+            <if test="userAccount != null">
+                user_account = #{userAccount},
+            </if>
+            <if test="avatarUrl != null">
+                avatar_url = #{avatarUrl},
+            </if>
+            <if test="gender != null">
+                gender = #{gender},
+            </if>
+            <if test="userPassword != null">
+                user_password = #{userPassword},
+            </if>
+            <if test="phone != null">
+                phone = #{phone},
+            </if>
+            <if test="email != null">
+                email = #{email},
+            </if>
+            <if test="userStatus != null">
+                user_status = #{userStatus},
+            </if>
+            <if test="isBanned != null">
+                is_banned = #{isBanned},
+            </if>
+            <if test="unbanDate != null">
+                unban_date = #{unbanDate},
+            </if>
+            <if test="banReason != null">
+                ban_reason = #{banReason},
+            </if>
+            <if test="userRole != null">
+                user_role = #{userRole},
+            </if>
+        </set>
+        where id = #{id} and is_delete = 0
+    </update>
+
+    <update id="deleteById" parameterType="java.lang.Long">
+        update user
+        set is_delete = 1
+        where id = #{id}
+    </update>
+
+    <select id="listUsersByPage" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from user
+        <where>
+            is_delete = 0
+            <if test="username != null and username != ''">
+                and username like concat('%', #{username}, '%')
+            </if>
+            <if test="userAccount != null and userAccount != ''">
+                and user_account like concat('%', #{userAccount}, '%')
+            </if>
+            <if test="userRole != null">
+                and user_role = #{userRole}
+            </if>
+        </where>
+        order by id desc
+        limit #{offset}, #{pageSize}
+    </select>
+    
+    <select id="countUsers" resultType="java.lang.Long">
+        select count(*)
+        from user
+        <where>
+            is_delete = 0
+            <if test="username != null and username != ''">
+                and username like concat('%', #{username}, '%')
+            </if>
+            <if test="userAccount != null and userAccount != ''">
+                and user_account like concat('%', #{userAccount}, '%')
+            </if>
+            <if test="userRole != null">
+                and user_role = #{userRole}
+            </if>
+        </where>
+    </select>
+    
+    <select id="listBannedUsersByPage" resultMap="BaseResultMap">
+        select
+        <include refid="Base_Column_List"/>
+        from user
+        where is_delete = 0 and is_banned = 1
+        order by id desc
+        limit #{offset}, #{pageSize}
+    </select>
+    
+    <select id="countBannedUsers" resultType="java.lang.Long">
+        select count(*)
+        from user
+        where is_delete = 0 and is_banned = 1
+    </select>
+</mapper> 

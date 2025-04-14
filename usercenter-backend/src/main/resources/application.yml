@@ -1,0 +1,156 @@
+server:
+  port: 8083
+  servlet:
+    session:
+      timeout: 86400
+
+spring:
+  datasource:
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/usercenter_db?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true
+    username: root
+    password: 123456
+  mvc:
+    pathmatch:
+      matching-strategy: ant_path_matcher
+
+  # Redis配置
+  redis:
+    enabled: true
+    host: localhost
+    port: 6379
+    database: 0
+    timeout: 10000
+    lettuce:
+      pool:
+        max-active: 20
+        max-idle: 8
+        min-idle: 2
+        max-wait: 3000ms
+    # Redis键事件通知配置，用于监听键过期
+    notify-keyspace-events: Ex
+
+  # RabbitMQ配置
+  rabbitmq:
+    enabled: true  # 控制是否启用 RabbitMQ 功能，设置为 false 可以在没有 RabbitMQ 的情况下启动应用
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    # 消息确认配置
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    # 消费者配置
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 1
+        concurrency: 3
+        max-concurrency: 10
+
+# Redisson配置（仅在 redis.enabled=true 时生效）
+redisson:
+  address: redis://localhost:6379
+  database: 0
+  pool:
+    max-active: 8
+    max-idle: 8
+    min-idle: 2
+  timeout: 3000
+
+# MyBatis-Plus配置
+mybatis-plus:
+  mapper-locations: classpath:mappers/*.xml
+  type-aliases-package: com.weiki.usercenterbackend.model.domain
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # 全局逻辑删除的字段名
+      logic-delete-field: isDelete
+      # 逻辑已删除值(1)
+      logic-delete-value: 1
+      # 逻辑未删除值(0)
+      logic-not-delete-value: 0
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"                # 暴露所有端点
+        exclude: "shutdown"         # 禁用敏感端点
+      base-path: /actuator          # 端点基础路径
+  endpoint:
+    health:
+      show-details: always          # 显示详细健康信息
+      probes:
+        enabled: true               # 启用Kubernetes探针
+      group:
+        readiness:
+          include: db, redis        # 包含数据库和Redis健康检查
+    prometheus:
+      enabled: true                 # 启用Prometheus端点
+  health:
+    redis:
+      enabled: ${spring.redis.enabled}  # 与Redis功能开关保持一致
+    redisson:
+      enabled: ${spring.redis.enabled}  # 与Redis功能开关保持一致
+    db:
+      enabled: true                 # 启用数据库健康检查
+  metrics:
+    export:
+      prometheus:
+        enabled: true               # 启用Prometheus指标导出
+    tags:
+      application: ${spring.application.name:usercenter}  # 应用名称标签
+
+logging:
+  level:
+    com:
+      weiki:
+        usercenterbackend: debug
+
+# knife4j API文档配置
+knife4j:
+  enable: true
+  # 生产环境可设置为true关闭API文档
+  production: false
+
+# 限流系统配置
+rate:
+  limit:
+    global:
+      qps: 10.0               # 全局默认QPS限制，所有API共享此限流器
+      warmup: 0               # 全局默认预热时间（秒），0表示无预热期
+      timeout: 0              # 全局默认超时时间（毫秒），0表示非阻塞模式
+    user:
+      qps: 5.0                # 用户级别默认QPS限制，每个用户单独计数
+    cache:
+      expire: 30              # 限流器缓存过期时间（分钟），闲置超过此时间的限流器会被回收
+      maximum:
+        size: 1000            # 限流器缓存最大数量，防止内存溢出
+    distributed:
+      enabled: true          # 是否启用分布式限流（基于Redis实现）
+      lua:
+        path: classpath:scripts/rate_limiter.lua # Redis Lua脚本路径
+    burst:
+      factor: 2.0             # 令牌桶大小倍率，用于突发流量处理
+
+# 缓存配置
+cache:
+  user:
+    expire: 3600  # 用户缓存过期时间（秒）
+    prefix: "user:"
+    enable: true  # 是否启用用户缓存
+  rate-limit:
+    expire: 300   # 限流器缓存过期时间（秒）
+    prefix: "rate-limit:"
+  auth:
+    token-expire: 1800  # 访问令牌过期时间（秒）
+    refresh-token-expire: 604800  # 刷新令牌过期时间（秒，7天）
+    prefix: "auth:"

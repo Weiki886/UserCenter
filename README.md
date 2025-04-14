@@ -246,17 +246,19 @@ UserCenter/
 │   │   │   │   │       ├── RedisCacheServiceImpl.java      # Redis缓存服务实现
 │   │   │   │   │       └── AuthServiceImpl.java   # 认证服务实现
 │   │   │   │   │
-│   │   │   │   └── utils/                # 工具类
-│   │   │   │       ├── JwtUtils.java             # JWT工具类
-│   │   │   │       ├── RedisUtils.java           # Redis操作工具类
-│   │   │   │       └── PasswordUtils.java        # 密码加密工具类
+│   │   │   │   └── UserCenterBackendApplication.java # 应用程序入口
 │   │   │   │
-│   │   │   └── resources/                # 资源文件
-│   │   │       ├── mappers/                      # MyBatis映射文件
-│   │   │       ├── scripts/                      # 脚本文件
-│   │   │       │   └── rate_limiter.lua          # 分布式限流Lua脚本
-│   │   │       └── application.yml               # 应用配置
+│   │   │   └── utils/                # 工具类
+│   │   │       ├── JwtUtils.java             # JWT工具类
+│   │   │       ├── RedisUtils.java           # Redis操作工具类
+│   │   │       └── PasswordUtils.java        # 密码加密工具类
 │   │   │
+│   │   └── resources/                # 资源文件
+│   │       ├── mappers/                      # MyBatis映射文件
+│   │       ├── scripts/                      # 脚本文件
+│   │       │   └── rate_limiter.lua          # 分布式限流Lua脚本
+│   │       └── application.yml               # 应用配置
+│   │
 │   └── sql/                              # SQL脚本
 │
 ├── usercenter-fronted/                   # 前端代码
@@ -289,11 +291,22 @@ UserCenter/
 │   │
 │   ├── turbo-dev.js                      # Turbo模式启动脚本（Windows优化）
 │   ├── next.config.mjs                   # Next.js配置（含性能优化）
+│   ├── cache-handler.js                  # 缓存处理器
 │   ├── .env.development                  # 开发环境配置
-│   └── package.json                      # 依赖配置
+│   ├── tsconfig.json                     # TypeScript配置
+│   ├── package.json                      # 依赖配置
+│   └── .gitignore                        # Git忽略配置
+│
+├── src/                                  # 通用源代码
+│   ├── models/                           # 通用模型
+│   ├── services/                         # 通用服务
+│   └── utils/                            # 通用工具函数
 │
 ├── update_baseresponse_imports.ps1       # BaseResponse导入修复脚本 (Windows版)
-└── update_baseresponse_imports.sh        # BaseResponse导入修复脚本 (Unix版)
+├── update_baseresponse_imports.sh        # BaseResponse导入修复脚本 (Unix版)
+├── package.json                          # 根目录依赖配置
+├── LICENSE                               # 许可证文件
+└── .gitignore                            # Git忽略配置
 ```
 
 ### 自定义网站图标

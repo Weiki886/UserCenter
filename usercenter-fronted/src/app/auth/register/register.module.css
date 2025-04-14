@@ -1,0 +1,29 @@
+.container {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 100vh;
+  background-color: #f0f2f5;
+  padding: 20px;
+}
+
+.card {
+  width: 100%;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+.loginLink {
+  text-align: center;
+  margin-top: 16px;
+}
+
+.loginLink a {
+  color: #1890ff;
+  margin-left: 8px;
+  cursor: pointer;
+}
+
+.loginLink a:hover {
+  text-decoration: underline;
+} 

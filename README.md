@@ -1,5 +1,39 @@
 # UserCenter 用户中心系统
 
+## 最新更新 (2024)
+
+### 前端优化
+1. 认证机制优化
+   - 实现了完整的 Token 自动刷新机制
+   - 添加请求队列管理，避免多个请求同时刷新 Token
+   - 优化了认证状态管理和用户会话处理
+
+2. 页面性能优化
+   - 改进了加载状态的显示
+   - 优化了页面切换时的用户体验
+   - 添加了友好的错误提示机制
+
+3. 技术栈升级
+   - 升级到 Next.js App Router
+   - 使用 'use client' 指令优化客户端组件
+   - 采用 CSS Modules 进行样式管理
+
+4. 用户体验改进
+   - 优化了表单验证和提示
+   - 改进了页面加载状态的展示
+   - 增强了错误处理和用户反馈
+
+### 后端优化
+1. 认证系统增强
+   - 完善了 Token 刷新机制
+   - 优化了用户会话管理
+   - 增强了安全性检查
+
+2. 性能优化
+   - 改进了请求处理流程
+   - 优化了数据库查询
+   - 增加了缓存机制
+
 ## 项目介绍
 
 UserCenter是一个功能完善的用户管理系统，提供用户注册、登录、信息管理等核心功能。本项目采用前后端分离架构，包含完整的前端界面和后端API，可用作独立的用户中心系统，也可集成到其他业务系统中。
@@ -72,93 +106,56 @@ UserCenter是一个功能完善的用户管理系统，提供用户注册、登�
 ## 快速开始
 
 ### 环境要求
-- Node.js 18+
-- JDK 11
-- Maven 3.6+
-- MySQL 8.0+
-- Redis 5.0+ (可选，用于分布式锁)
-- RabbitMQ 3.8+ (可选，用于消息队列)
+- Node.js 16+
+- JDK 1.8+
+- MySQL 5.7+
+- Redis 6.0+
 
-### 后端部署
-
-1. 克隆仓库
-```bash
-git clone https://github.com/Weiki886/UserCenter.git
-cd UserCenter
-```
-
-2. 配置数据库
-```sql
-# 创建数据库
-CREATE DATABASE user_center;
-```
-
-3. 修改配置
-```bash
-# 编辑配置文件
-vim usercenter-backend/src/main/resources/application.yml
-# 修改数据库连接信息、Redis配置（可选）和RabbitMQ配置（可选）
-```
-
-4. 执行数据库脚本
-```bash
-# 运行初始化SQL脚本
-mysql -u username -p user_center < usercenter-backend/sql/init_table.sql
-# 运行索引更新脚本
-mysql -u username -p user_center < usercenter-backend/sql/update_unique_index.sql
-# 运行封禁功能脚本
-mysql -u username -p user_center < usercenter-backend/sql/add_user_ban_columns.sql
-```
-
-5. 启动后端服务
-```bash
-cd usercenter-backend
-mvn spring-boot:run
-```
-
-### 前端部署
-
-1. 安装依赖
+### 安装依赖
+前端：
 ```bash
 cd usercenter-fronted
 npm install
 ```
 
-2. 修改API配置
+后端：
 ```bash
-# 编辑API配置
-vim src/services/api.ts
-# 确保baseURL指向正确的后端地址
+cd usercenter-backend
+mvn install
 ```
 
-3. 开发环境启动
+### 启动服务
+前端开发服务器：
 ```bash
-# 标准模式启动
 npm run dev
-
-# 高性能Turbo模式启动（推荐）
-npm run dev:fast
-
-# Windows专用优化启动
-npm run dev:win
 ```
 
-4. 生产环境构建
+后端服务器：
 ```bash
-npm run build
-npm start
+mvn spring-boot:run
 ```
 
-5. 性能优化说明
-- `dev:fast` 使用Next.js Turbo模式，大幅提升编译速度
-- `dev:win` 使用Node.js脚本启动Turbo模式，专为Windows环境优化
-- 项目已配置组件按需导入和CSS优化，减少打包体积
-- 详细优化内容请参考前端性能优化章节
+### 配置说明
+1. 前端配置（.env.local）：
+```env
+NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+```
+
+2. 后端配置（application.yml）：
+```yaml
+spring:
+  datasource:
+    url: jdbc:mysql://localhost:3306/user_center
+    username: your_username
+    password: your_password
+  redis:
+    host: localhost
+    port: 6379
+```
 
 ## 开发指南
 
 ### 目录结构
-
 ```
 UserCenter/
 ├── usercenter-backend/                   # 后端代码

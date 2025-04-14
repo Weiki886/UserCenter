@@ -49,6 +49,7 @@ public class UserBanController {
         long userId = banRequest.getUserId();
         int banDays = banRequest.getBanDays();
         String reason = banRequest.getReason();
+        Boolean isPermanent = banRequest.getIsPermanent();
         
         if (userId <= 0 || banDays < 0) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "参数错误");
@@ -56,6 +57,16 @@ public class UserBanController {
         
         if (StringUtils.isBlank(reason)) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR, "封禁原因不能为空");
+        }
+        
+        // 记录详细日志，帮助排查问题
+        log.info("封禁用户请求: userId={}, banDays={}, isPermanent={}, reason={}",
+                userId, banDays, isPermanent, reason);
+        
+        // 如果明确指定了isPermanent为true，则强制设置banDays为0表示永久封禁
+        if (isPermanent != null && isPermanent) {
+            banDays = 0;
+            log.info("用户明确要求永久封禁，强制设置banDays=0");
         }
         
         // 先检查要封禁的用户是否为管理员

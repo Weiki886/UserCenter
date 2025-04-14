@@ -25,6 +25,7 @@ export interface UserType {
   isBanned?: number;
   unbanDate?: string | null;
   banReason?: string;
+  isPermanentBan?: boolean;
   createTime: Date;
 }
 
@@ -69,6 +70,7 @@ export interface UserBanParams {
   userId: number;
   banDays: number;
   reason: string;
+  isPermanent?: boolean;
 }
 
 /**
@@ -224,12 +226,36 @@ export async function getUserPage(params: UserPageParams): Promise<PageVO<UserTy
       throw new Error(description || message || '获取用户列表失败');
     }
     
-    // 数据处理，确保unbanDate如果为空字符串，转为null
+    // 数据处理，确保封禁状态正确
     if (data && data.records) {
-      data.records = data.records.map(user => ({
-        ...user,
-        unbanDate: user.unbanDate === '' ? null : user.unbanDate
-      }));
+      data.records = data.records.map(user => {
+        // 处理unbanDate，确保统一为null或有效日期字符串
+        const unbanDate = 
+          user.unbanDate === '' || 
+          user.unbanDate === undefined || 
+          user.unbanDate === "null" ? null : user.unbanDate;
+        
+        // 标记永久封禁：当isBanned=1且unbanDate为null时
+        const isPermanentBan = user.isBanned === 1 && (unbanDate === null);
+        
+        // 调试信息，帮助排查中文问题
+        if (user.isBanned === 1) {
+          console.log(`用户${user.id}封禁信息:`, {
+            原始unbanDate: user.unbanDate,
+            处理后unbanDate: unbanDate,
+            处理后unbanDate类型: typeof unbanDate,
+            isPermanentBan,
+            banReason: user.banReason,
+            reasonHasChinese: user.banReason ? /[\u4e00-\u9fa5]/.test(user.banReason) : false
+          });
+        }
+        
+        return {
+          ...user,
+          unbanDate,
+          isPermanentBan
+        };
+      });
     }
     
     return data;
@@ -265,21 +291,44 @@ export async function updatePassword(params: PasswordUpdateParams): Promise<bool
  */
 export async function banUser(params: UserBanParams): Promise<boolean> {
   try {
-    const response = await api.post<BaseResponse<boolean>>('/user/ban/ban', params);
+    // 确定是否永久封禁
+    const isPermanent = params.isPermanent || params.banDays === 0;
+    
+    // 显式处理永久封禁标志，确保与banDays=0一致
+    const requestParams = {
+      ...params,
+      // 强制同步isPermanent和banDays，确保一致性
+      isPermanent,
+      banDays: isPermanent ? 0 : params.banDays
+    };
+    
+    // 记录详细日志，帮助排查问题
+    console.log('封禁请求参数:', {
+      ...requestParams,
+      reason中文: /[\u4e00-\u9fa5]/.test(params.reason),
+      reason长度: params.reason.length
+    });
+    
+    const response = await api.post<BaseResponse<boolean>>('/user/ban/ban', requestParams);
     const { code, data, message, description } = response.data;
     
     if (code !== 0) {
       throw new Error(description || message || '封禁用户失败');
     }
     
-    // 清除用户列表和封禁用户列表缓存
-    if (api.invalidateCache) {
-      try {
-        api.invalidateCache('/user/list/page');
-        api.invalidateCache('/user/ban/list');
-      } catch (e) {
-        console.warn('清除缓存失败:', e);
-      }
+    // 清除所有相关缓存
+    try {
+      // 清除用户列表相关缓存
+      api.invalidateCache('/user/list/page');
+      api.invalidateCache('/user/ban/list');
+      
+      // 清除可能的用户详情缓存
+      api.invalidateCache(`/user/${requestParams.userId}`);
+      api.invalidateCache(`/user/info/${requestParams.userId}`);
+      
+      console.log('封禁后清除缓存成功');
+    } catch (e) {
+      console.warn('清除缓存失败:', e);
     }
     
     return data;
@@ -295,6 +344,8 @@ export async function banUser(params: UserBanParams): Promise<boolean> {
  */
 export async function unbanUser(userId: number): Promise<boolean> {
   try {
+    console.log(`开始解封用户: ${userId}`);
+    
     const response = await api.post<BaseResponse<boolean>>('/user/ban/unban', { userId });
     const { code, data, message, description } = response.data;
     
@@ -302,14 +353,19 @@ export async function unbanUser(userId: number): Promise<boolean> {
       throw new Error(description || message || '解封用户失败');
     }
     
-    // 清除用户列表和封禁用户列表缓存
-    if (api.invalidateCache) {
-      try {
-        api.invalidateCache('/user/list/page');
-        api.invalidateCache('/user/ban/list');
-      } catch (e) {
-        console.warn('清除缓存失败:', e);
-      }
+    // 彻底清除所有相关缓存
+    try {
+      // 清除用户列表相关缓存
+      api.invalidateCache('/user/list/page');
+      api.invalidateCache('/user/ban/list');
+      
+      // 清除可能的用户详情缓存
+      api.invalidateCache(`/user/${userId}`);
+      api.invalidateCache(`/user/info/${userId}`);
+      
+      console.log(`解封用户${userId}后清除缓存成功`);
+    } catch (e) {
+      console.warn('清除缓存失败:', e);
     }
     
     return data;
@@ -333,6 +389,37 @@ export async function getBannedUsers(current: number = 1, pageSize: number = 10)
     
     if (code !== 0) {
       throw new Error(description || message || '获取封禁用户列表失败');
+    }
+    
+    // 处理永久封禁标记 - 与getUserPage保持一致的处理逻辑
+    if (data && data.records) {
+      data.records = data.records.map(user => {
+        // 处理unbanDate，确保统一为null或有效日期字符串
+        const unbanDate = 
+          user.unbanDate === '' || 
+          user.unbanDate === undefined || 
+          user.unbanDate === "null" ? null : user.unbanDate;
+        
+        // 标记永久封禁：当isBanned=1且unbanDate为null时
+        const isPermanentBan = user.isBanned === 1 && (unbanDate === null);
+        
+        // 调试日志
+        if (user.isBanned === 1) {
+          console.log(`被封禁用户${user.id}信息:`, {
+            原始unbanDate: user.unbanDate,
+            处理后unbanDate: unbanDate,
+            处理后unbanDate类型: typeof unbanDate,
+            isPermanentBan,
+            banReason: user.banReason
+          });
+        }
+        
+        return {
+          ...user,
+          unbanDate,
+          isPermanentBan
+        };
+      });
     }
     
     return data;

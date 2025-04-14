@@ -477,25 +477,56 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "用户已被封禁");
         }
         
+        // 记录用户当前状态用于日志，特别是先前的封禁/解封状态
+        log.info("封禁前用户状态检查 - 用户ID: {}, 当前封禁状态: {}, 当前unbanDate: {}", 
+                userId, user.getIsBanned(), user.getUnbanDate());
+        
         // 设置封禁状态
         user.setIsBanned(1);
         user.setBanReason(reason);
         
+        // 明确重置unbanDate，确保没有历史数据残留
+        if (user.getUnbanDate() != null) {
+            log.info("用户{}存在历史unbanDate记录：{}，将被重置", userId, user.getUnbanDate());
+        }
+        
+        // 用于日志的变量
+        boolean isPermanentBan = banDays == 0;
+        Date unbanDate = null;
+        
         // 设置解封日期
         if (banDays > 0) {
+            // 临时封禁
             Calendar calendar = Calendar.getInstance();
             calendar.add(Calendar.DAY_OF_MONTH, banDays);
-            user.setUnbanDate(calendar.getTime());
+            unbanDate = calendar.getTime();
+            user.setUnbanDate(unbanDate);
+            log.info("设置临时封禁，解封日期: {}", unbanDate);
         } else {
-            // 永久封禁
+            // 永久封禁，明确设置为null
             user.setUnbanDate(null);
+            log.info("设置永久封禁，解封日期明确设为null");
         }
         
         // 更新用户
         int result = userMapper.updateById(user);
         
         // 记录操作日志
-        log.info("用户 {} 被封禁，封禁天数：{}，原因：{}", userId, banDays, reason);
+        log.info("用户 {} 被{}封禁，封禁天数：{}，原因：{}, 解封日期：{}, 更新结果: {}",
+                userId, isPermanentBan ? "永久" : "临时", banDays, reason, 
+                isPermanentBan ? "永不解封" : unbanDate, result > 0 ? "成功" : "失败");
+        
+        // 如果此用户有缓存，强制清除
+        String cacheKey = USER_CACHE_KEY_PREFIX + userId;
+        try {
+            boolean hasKey = redisTemplate.hasKey(cacheKey);
+            if (hasKey) {
+                redisTemplate.delete(cacheKey);
+                log.info("已清除用户{}的缓存数据", userId);
+            }
+        } catch (Exception e) {
+            log.warn("清除用户缓存出错", e);
+        }
         
         return result > 0;
     }
@@ -520,15 +551,34 @@ public class UserServiceImpl implements UserService {
             throw new BusinessException(ErrorCode.OPERATION_ERROR, "用户未被封禁");
         }
         
-        // 解除封禁
-        user.setIsBanned(0);
-        user.setUnbanDate(null);
+        // 记录用户解封前的状态
+        boolean wasPermanentBan = user.getUnbanDate() == null;
+        log.info("解封前用户状态 - 用户ID: {}, 封禁状态: {}, 解封日期: {}, 是否永久封禁: {}, 封禁原因: {}", 
+                userId, user.getIsBanned(), user.getUnbanDate(), wasPermanentBan, user.getBanReason());
+        
+        // 彻底清除所有封禁相关数据
+        user.setIsBanned(0);       // 设置为未封禁
+        user.setUnbanDate(null);   // 清除解封日期
+        user.setBanReason(null);   // 清除封禁原因
         
         // 更新用户
         int result = userMapper.updateById(user);
         
         // 记录操作日志
-        log.info("用户 {} 被解封", userId);
+        log.info("用户 {} 被解封，原封禁类型: {}, 更新结果: {}", 
+                userId, wasPermanentBan ? "永久封禁" : "临时封禁", result > 0 ? "成功" : "失败");
+        
+        // 强制清除用户缓存
+        String cacheKey = USER_CACHE_KEY_PREFIX + userId;
+        try {
+            boolean hasKey = redisTemplate.hasKey(cacheKey);
+            if (hasKey) {
+                redisTemplate.delete(cacheKey);
+                log.info("已清除用户{}的缓存数据", userId);
+            }
+        } catch (Exception e) {
+            log.warn("清除用户缓存出错", e);
+        }
         
         return result > 0;
     }

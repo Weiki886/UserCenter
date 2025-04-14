@@ -28,4 +28,10 @@ public class UserBanRequest {
      */
     @ApiModelProperty(value = "封禁原因", required = true)
     private String reason;
+    
+    /**
+     * 是否永久封禁
+     */
+    @ApiModelProperty(value = "是否永久封禁", required = false)
+    private Boolean isPermanent;
 } 

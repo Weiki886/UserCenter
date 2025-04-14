@@ -115,41 +115,33 @@ const UserManagement = () => {
       }
       
       const values = await banForm.validateFields();
-      await banUser({
-        userId: userToBan.id,
-        banDays: values.banDays,
-        reason: values.reason,
-      });
       
-      message.success('用户封禁成功');
+      // 明确判断是否为永久封禁 - banDays为0表示永久封禁
+      const isPermanent = values.banDays === 0;
+      
+      // 设置请求参数
+      const banParams = {
+        userId: userToBan.id,
+        banDays: values.banDays, 
+        reason: values.reason,
+        isPermanent: isPermanent // 显式传递是否永久封禁标志
+      };
+      
+      console.log('发送封禁请求:', JSON.stringify(banParams));
+      
+      // 发送请求前强制让form控件失去焦点，避免可能的状态问题
+      document.activeElement && (document.activeElement as HTMLElement).blur();
+      
+      await banUser(banParams);
+      
+      message.success(`用户${isPermanent ? '永久' : '临时'}封禁成功`);
       setBanModalVisible(false);
       
-      // 优化：本地立即更新状态
-      const unbanTimestamp = values.banDays === 0 ? null : new Date(Date.now() + values.banDays * 24 * 60 * 60 * 1000).toISOString();
-      console.log('设置封禁：', '天数:', values.banDays, '解封时间戳:', unbanTimestamp, '类型:', typeof unbanTimestamp);
-      
-      setUsers(prevUsers => 
-        prevUsers.map(user => {
-          if (user.id === userToBan.id) {
-            const updatedUser = {
-              ...user,
-              isBanned: 1,
-              banReason: values.reason,
-              unbanDate: unbanTimestamp
-            };
-            console.log('更新后的用户数据:', updatedUser);
-            return updatedUser;
-          }
-          return user;
-        })
-      );
-      
-      // 延迟刷新，确保本地状态渲染
-      setTimeout(() => {
-        fetchUsers();
-      }, 500);
+      // 拉取最新数据
+      fetchUsers();
     } catch (error: any) {
       message.error(error.message || '封禁用户失败');
+      console.error('封禁失败:', error);
     }
   };
 
@@ -257,17 +249,47 @@ const UserManagement = () => {
       render: (isBanned: number, record: UserType) => {
         if (isBanned === 1) {
           const unbanDate = record.unbanDate;
-          console.log('封禁用户ID:', record.id, '解封日期:', unbanDate, '类型:', typeof unbanDate);
-          // 严格检查unbanDate是否为null、undefined或空字符串
-          return (unbanDate !== null && unbanDate !== undefined && unbanDate !== '') ? (
-            <Tooltip title={`解封日期: ${formatDateTime(unbanDate)}\n原因: ${record.banReason}`}>
-              <Tag color="error">临时封禁</Tag>
-            </Tooltip>
-          ) : (
-            <Tooltip title={`原因: ${record.banReason}`}>
-              <Tag color="error">永久封禁</Tag>
-            </Tooltip>
-          );
+          const isPermanent = record.isPermanentBan;
+          
+          // 详细日志输出，帮助排查问题
+          console.log(`用户${record.id}封禁状态:`, {
+            isBanned,
+            unbanDate原始值: record.unbanDate,
+            unbanDate类型: typeof unbanDate,
+            isPermanent,
+            banReason: record.banReason,
+            reason中文: record.banReason ? /[\u4e00-\u9fa5]/.test(record.banReason) : false
+          });
+          
+          // 严格判断永久封禁
+          // 1. isPermanentBan标记为true (从服务端获取)
+          // 2. 或者unbanDate明确为null（不是undefined或空字符串）
+          // 修复：解封后再次永久封禁的用户应该正确显示为永久封禁
+          const isUnbanDateNull = unbanDate === null;
+            
+          // 强制使用这个变量决定显示永久还是临时封禁
+          const showAsPermanentBan = isPermanent || isUnbanDateNull;
+          
+          console.log(`用户${record.id}封禁判定:`, {
+            isUnbanDateNull,
+            isPermanent,
+            showAsPermanentBan,
+            最终显示: showAsPermanentBan ? '永久封禁' : '临时封禁'
+          });
+          
+          if (showAsPermanentBan) {
+            return (
+              <Tooltip title={`原因: ${record.banReason || '未提供'}`}>
+                <Tag color="error">永久封禁</Tag>
+              </Tooltip>
+            );
+          } else {
+            return (
+              <Tooltip title={`解封日期: ${formatDateTime(unbanDate || '')}\n原因: ${record.banReason || '未提供'}`}>
+                <Tag color="error">临时封禁</Tag>
+              </Tooltip>
+            );
+          }
         }
         return <Tag color="success">正常</Tag>;
       },

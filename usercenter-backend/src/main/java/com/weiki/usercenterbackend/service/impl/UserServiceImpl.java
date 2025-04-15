@@ -481,35 +481,30 @@ public class UserServiceImpl implements UserService {
         log.info("封禁前用户状态检查 - 用户ID: {}, 当前封禁状态: {}, 当前unbanDate: {}", 
                 userId, user.getIsBanned(), user.getUnbanDate());
         
-        // 设置封禁状态
-        user.setIsBanned(1);
-        user.setBanReason(reason);
-        
-        // 明确重置unbanDate，确保没有历史数据残留
-        if (user.getUnbanDate() != null) {
-            log.info("用户{}存在历史unbanDate记录：{}，将被重置", userId, user.getUnbanDate());
-        }
-        
         // 用于日志的变量
         boolean isPermanentBan = banDays == 0;
         Date unbanDate = null;
+        int result;
         
-        // 设置解封日期
-        if (banDays > 0) {
-            // 临时封禁
+        if (isPermanentBan) {
+            // 永久封禁 - 使用专门的方法确保unbanDate为null
+            log.info("执行永久封禁，强制清除可能存在的历史unbanDate记录");
+            result = userMapper.permanentBanUser(userId, reason);
+        } else {
+            // 临时封禁 - 使用常规方法设置unbanDate
+            // 设置封禁状态
+            user.setIsBanned(1);
+            user.setBanReason(reason);
+            
+            // 计算解封日期
             Calendar calendar = Calendar.getInstance();
             calendar.add(Calendar.DAY_OF_MONTH, banDays);
             unbanDate = calendar.getTime();
             user.setUnbanDate(unbanDate);
+            
             log.info("设置临时封禁，解封日期: {}", unbanDate);
-        } else {
-            // 永久封禁，明确设置为null
-            user.setUnbanDate(null);
-            log.info("设置永久封禁，解封日期明确设为null");
+            result = userMapper.updateById(user);
         }
-        
-        // 更新用户
-        int result = userMapper.updateById(user);
         
         // 记录操作日志
         log.info("用户 {} 被{}封禁，封禁天数：{}，原因：{}, 解封日期：{}, 更新结果: {}",

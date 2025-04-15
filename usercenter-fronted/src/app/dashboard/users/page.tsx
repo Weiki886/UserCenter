@@ -249,44 +249,54 @@ const UserManagement = () => {
       render: (isBanned: number, record: UserType) => {
         if (isBanned === 1) {
           const unbanDate = record.unbanDate;
-          const isPermanent = record.isPermanentBan;
           
-          // 详细日志输出，帮助排查问题
+          // 计算剩余封禁时间
+          let remainingDays = 0;
+          let isPastDue = false;
+          
+          if (unbanDate && unbanDate !== "null" && unbanDate !== "") {
+            const now = new Date();
+            const unbanDateTime = new Date(unbanDate);
+            if (!isNaN(unbanDateTime.getTime())) {
+              remainingDays = Math.ceil((unbanDateTime.getTime() - now.getTime()) / (1000 * 3600 * 24));
+              isPastDue = remainingDays <= 0;
+            }
+          }
+          
+          // 确定封禁类型
+          const isUnbanDateEmpty = !unbanDate || unbanDate === "null" || unbanDate === "";
+          
+          // 记录日志
           console.log(`用户${record.id}封禁状态:`, {
             isBanned,
             unbanDate原始值: record.unbanDate,
             unbanDate类型: typeof unbanDate,
-            isPermanent,
-            banReason: record.banReason,
-            reason中文: record.banReason ? /[\u4e00-\u9fa5]/.test(record.banReason) : false
+            isUnbanDateEmpty,
+            remainingDays,
+            isPastDue,
+            banReason: record.banReason
           });
           
-          // 严格判断永久封禁
-          // 1. isPermanentBan标记为true (从服务端获取)
-          // 2. 或者unbanDate明确为null（不是undefined或空字符串）
-          // 修复：解封后再次永久封禁的用户应该正确显示为永久封禁
-          const isUnbanDateNull = unbanDate === null;
-            
-          // 强制使用这个变量决定显示永久还是临时封禁
-          const showAsPermanentBan = isPermanent || isUnbanDateNull;
-          
-          console.log(`用户${record.id}封禁判定:`, {
-            isUnbanDateNull,
-            isPermanent,
-            showAsPermanentBan,
-            最终显示: showAsPermanentBan ? '永久封禁' : '临时封禁'
-          });
-          
-          if (showAsPermanentBan) {
+          // 三种情况：永久封禁、临时封禁生效中、封禁已过期
+          if (isUnbanDateEmpty) {
+            // 永久封禁
             return (
               <Tooltip title={`原因: ${record.banReason || '未提供'}`}>
-                <Tag color="error">永久封禁</Tag>
+                <Tag color="#f50" style={{fontWeight: 'bold'}}>永久封禁</Tag>
+              </Tooltip>
+            );
+          } else if (!isPastDue) {
+            // 临时封禁且未过期
+            return (
+              <Tooltip title={`解封日期: ${formatDateTime(unbanDate)}\n剩余天数: ${remainingDays}天\n原因: ${record.banReason || '未提供'}`}>
+                <Tag color="orange">临时封禁 ({remainingDays}天)</Tag>
               </Tooltip>
             );
           } else {
+            // 已过期但未自动解封
             return (
-              <Tooltip title={`解封日期: ${formatDateTime(unbanDate || '')}\n原因: ${record.banReason || '未提供'}`}>
-                <Tag color="error">临时封禁</Tag>
+              <Tooltip title={`封禁已过期，将在下次登录时自动解封\n原因: ${record.banReason || '未提供'}`}>
+                <Tag color="gold">封禁已过期</Tag>
               </Tooltip>
             );
           }

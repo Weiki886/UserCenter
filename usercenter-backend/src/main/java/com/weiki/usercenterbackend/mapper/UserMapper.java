@@ -86,11 +86,19 @@ public interface UserMapper {
      * @param pageSize 页面大小
      * @return 封禁用户列表
      */
-    List<User> listBannedUsersByPage(int offset, int pageSize);
+    List<User> listBannedUsersByPage(int offset, Integer pageSize);
 
     /**
      * 获取封禁用户总数
      * @return 封禁用户总数
      */
     long countBannedUsers();
+
+    /**
+     * 永久封禁用户（强制设置unbanDate为null）
+     * @param userId 用户ID
+     * @param reason 封禁原因
+     * @return 影响的行数
+     */
+    int permanentBanUser(Long userId, String reason);
 } 

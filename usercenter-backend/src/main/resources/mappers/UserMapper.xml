@@ -88,9 +88,7 @@
             <if test="isBanned != null">
                 is_banned = #{isBanned},
             </if>
-            <if test="unbanDate != null">
-                unban_date = #{unbanDate},
-            </if>
+            unban_date = #{unbanDate},
             <if test="banReason != null">
                 ban_reason = #{banReason},
             </if>
@@ -158,4 +156,12 @@
         from user
         where is_delete = 0 and is_banned = 1
     </select>
+    
+    <update id="permanentBanUser">
+        update user
+        set is_banned = 1,
+            unban_date = null,
+            ban_reason = #{reason}
+        where id = #{userId} and is_delete = 0
+    </update>
 </mapper> 

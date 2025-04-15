@@ -26,6 +26,7 @@ export interface UserType {
   unbanDate?: string | null;
   banReason?: string;
   isPermanentBan?: boolean;
+  isBanExpired?: boolean;
   createTime: Date;
 }
 
@@ -233,27 +234,38 @@ export async function getUserPage(params: UserPageParams): Promise<PageVO<UserTy
         const unbanDate = 
           user.unbanDate === '' || 
           user.unbanDate === undefined || 
-          user.unbanDate === "null" ? null : user.unbanDate;
+          user.unbanDate === "null" || 
+          user.unbanDate === null ? null : user.unbanDate;
         
-        // 标记永久封禁：当isBanned=1且unbanDate为null时
-        const isPermanentBan = user.isBanned === 1 && (unbanDate === null);
+        // 确定封禁类型
+        const isPermanentBan = user.isBanned === 1 && !unbanDate;
         
-        // 调试信息，帮助排查中文问题
+        // 检查临时封禁是否已过期
+        let isBanExpired = false;
+        if (user.isBanned === 1 && unbanDate) {
+          const now = new Date();
+          const unbanDateTime = new Date(unbanDate);
+          if (!isNaN(unbanDateTime.getTime())) {
+            isBanExpired = now > unbanDateTime;
+          }
+        }
+        
+        // 调试信息
         if (user.isBanned === 1) {
           console.log(`用户${user.id}封禁信息:`, {
             原始unbanDate: user.unbanDate,
             处理后unbanDate: unbanDate,
-            处理后unbanDate类型: typeof unbanDate,
             isPermanentBan,
-            banReason: user.banReason,
-            reasonHasChinese: user.banReason ? /[\u4e00-\u9fa5]/.test(user.banReason) : false
+            isBanExpired,
+            banReason: user.banReason
           });
         }
         
         return {
           ...user,
           unbanDate,
-          isPermanentBan
+          isPermanentBan,
+          isBanExpired
         };
       });
     }
@@ -398,18 +410,29 @@ export async function getBannedUsers(current: number = 1, pageSize: number = 10)
         const unbanDate = 
           user.unbanDate === '' || 
           user.unbanDate === undefined || 
-          user.unbanDate === "null" ? null : user.unbanDate;
+          user.unbanDate === "null" || 
+          user.unbanDate === null ? null : user.unbanDate;
         
-        // 标记永久封禁：当isBanned=1且unbanDate为null时
-        const isPermanentBan = user.isBanned === 1 && (unbanDate === null);
+        // 确定封禁类型
+        const isPermanentBan = user.isBanned === 1 && !unbanDate;
+        
+        // 检查临时封禁是否已过期
+        let isBanExpired = false;
+        if (user.isBanned === 1 && unbanDate) {
+          const now = new Date();
+          const unbanDateTime = new Date(unbanDate);
+          if (!isNaN(unbanDateTime.getTime())) {
+            isBanExpired = now > unbanDateTime;
+          }
+        }
         
         // 调试日志
         if (user.isBanned === 1) {
           console.log(`被封禁用户${user.id}信息:`, {
             原始unbanDate: user.unbanDate,
             处理后unbanDate: unbanDate,
-            处理后unbanDate类型: typeof unbanDate,
             isPermanentBan,
+            isBanExpired,
             banReason: user.banReason
           });
         }
@@ -417,7 +440,8 @@ export async function getBannedUsers(current: number = 1, pageSize: number = 10)
         return {
           ...user,
           unbanDate,
-          isPermanentBan
+          isPermanentBan,
+          isBanExpired
         };
       });
     }

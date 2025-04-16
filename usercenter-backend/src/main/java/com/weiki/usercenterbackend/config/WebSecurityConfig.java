@@ -15,6 +15,9 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.provisioning.InMemoryUserDetailsManager;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.www.BasicAuthenticationFilter;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.web.context.NullSecurityContextRepository;
 
 import static com.weiki.usercenterbackend.constant.UserConstant.ADMIN_ROLE;
 
@@ -55,7 +58,15 @@ public class WebSecurityConfig {
                 .requestMatchers(EndpointRequest.toAnyEndpoint()).hasRole("ADMIN")
                 .anyRequest().authenticated()
                 .and()
-            .httpBasic();
+            .httpBasic()
+                .and()
+            // 设置为STATELESS，避免创建session，防止干扰应用的用户会话
+            .sessionManagement()
+                .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
+                .and()
+            // 使用空安全上下文仓库，不保存认证状态
+            .securityContext()
+                .securityContextRepository(new NullSecurityContextRepository());
         
         return http.build();
     }
@@ -87,12 +98,13 @@ public class WebSecurityConfig {
     }
     
     /**
-     * 内存用户服务，用于Actuator访问
+     * 内存用户服务，仅用于Actuator访问
+     * 注意：这里的用户与应用的用户系统完全分离
      */
     @Bean 
     public UserDetailsService userDetailsService() {
         InMemoryUserDetailsManager manager = new InMemoryUserDetailsManager();
-        manager.createUser(User.withUsername("admin")
+        manager.createUser(User.withUsername("actuator_admin")
             .password(passwordEncoder().encode("adminPassword"))
             .roles("ADMIN")
             .build());

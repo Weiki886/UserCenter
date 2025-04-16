@@ -286,6 +286,60 @@ public class UserServiceImpl implements UserService {
 
     @Override
     @Transactional(rollbackFor = Exception.class)
+    public boolean deleteAccount(String userAccount, String userPassword, HttpServletRequest request) {
+        // 1. 校验参数
+        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号或密码不能为空");
+        }
+        
+        // 2. 校验账号是否存在
+        User user = userMapper.selectByUserAccount(userAccount);
+        if (user == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号不存在");
+        }
+        
+        // 3. 校验密码是否正确
+        String encryptPassword = DigestUtils.md5DigestAsHex((SALT + userPassword).getBytes());
+        if (!user.getUserPassword().equals(encryptPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "密码错误");
+        }
+        
+        // 4. 校验当前登录用户是否为要删除的账号
+        User loginUser = getLoginUser(request);
+        if (loginUser == null || !loginUser.getUserAccount().equals(userAccount)) {
+            throw new BusinessException(ErrorCode.NO_AUTH, "无权限操作");
+        }
+        
+        // 5. 执行删除操作
+        long userId = user.getId();
+        int result = userMapper.deleteById(userId);
+        
+        // 6. 清除缓存
+        String cacheKey = USER_CACHE_KEY_PREFIX + userId;
+        redisTemplate.delete(cacheKey);
+        
+        // 7. 清除登录状态
+        request.getSession().removeAttribute(USER_LOGIN_STATE);
+        
+        return result > 0;
+    }
+
+    /**
+     * 获取当前登录用户
+     * @param request HTTP请求
+     * @return 当前登录用户
+     */
+    private User getLoginUser(HttpServletRequest request) {
+        // 从session中获取用户信息
+        Object userObj = request.getSession().getAttribute(USER_LOGIN_STATE);
+        if (userObj == null) {
+            throw new BusinessException(ErrorCode.NOT_LOGIN);
+        }
+        return (User) userObj;
+    }
+
+    @Override
+    @Transactional(rollbackFor = Exception.class)
     public boolean updateUser(UserUpdateRequest updateRequest, HttpServletRequest request) {
         if (updateRequest == null || request == null) {
             throw new BusinessException(ErrorCode.PARAMS_ERROR);

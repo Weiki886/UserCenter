@@ -67,6 +67,11 @@ export interface PasswordUpdateParams {
   checkPassword: string;
 }
 
+export interface UserDeleteParams {
+  userAccount: string;
+  userPassword: string;
+}
+
 export interface UserBanParams {
   userId: number;
   banDays: number;
@@ -293,6 +298,30 @@ export async function updatePassword(params: PasswordUpdateParams): Promise<bool
     return data;
   } catch (error) {
     console.error('修改密码失败:', error);
+    throw error;
+  }
+}
+
+/**
+ * 注销个人账号
+ * @param params 
+ */
+export async function deleteAccount(params: UserDeleteParams): Promise<boolean> {
+  try {
+    const response = await api.post<BaseResponse<boolean>>('/user/delete-account', params);
+    const { code, data, message, description } = response.data;
+    
+    if (code !== 0) {
+      throw new Error(description || message || '注销账号失败');
+    }
+    
+    // 清除用户相关缓存
+    api.invalidateCache('/user/current');
+    api.invalidateCache('/user/list/page');
+    
+    return data;
+  } catch (error) {
+    console.error('注销账号失败:', error);
     throw error;
   }
 }

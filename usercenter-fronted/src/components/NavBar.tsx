@@ -1,7 +1,7 @@
 import { Layout, Avatar, Dropdown, Skeleton, message } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { UserOutlined, SettingOutlined, LogoutOutlined, LockOutlined } from '@ant-design/icons';
+import { UserOutlined, SettingOutlined, LogoutOutlined, LockOutlined, DeleteOutlined } from '@ant-design/icons';
 import { logout } from '@/services/userService';
 import { useUser } from '@/contexts/UserContext';
 import { useEffect, useState } from 'react';
@@ -73,6 +73,7 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
     if (item === 'dashboard' && activeItem === 'dashboard') return true;
     if (item === 'settings' && activeItem === 'settings') return true;
     if (item === 'change-password' && activeItem === 'change-password') return true;
+    if (item === 'delete-account' && activeItem === 'delete-account') return true;
     return false;
   };
 
@@ -210,10 +211,24 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
                   ),
                 },
                 {
+                  key: '4',
+                  icon: <DeleteOutlined />,
+                  label: (
+                    <Link 
+                      href="/dashboard/delete-account" 
+                      style={{
+                        color: isActive('delete-account') ? '#1890ff' : 'inherit'
+                      }}
+                    >
+                      注销账号
+                    </Link>
+                  ),
+                },
+                {
                   type: 'divider',
                 },
                 {
-                  key: '4',
+                  key: '5',
                   icon: <LogoutOutlined />,
                   label: '退出登录',
                   onClick: handleLogout,

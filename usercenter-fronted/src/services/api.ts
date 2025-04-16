@@ -55,14 +55,15 @@ api.interceptors.response.use(
     if (typeof window !== 'undefined') {
       // 检查是否是登录响应，如果是则保存token
       const url = response.config.url;
-      if (url && url.includes('/user/login') && response.data.code === 0) {
-        // 保存token到localStorage (注意：由于后端可能没有在响应中直接返回token，以下是假设的处理方式)
+      if (url && url.includes('/user/login') && response.data.code === 0 && response.data.data) {
+        // 确保只有在显式登录成功时才设置token
         if (response.headers && response.headers.authorization) {
           localStorage.setItem('userToken', response.headers.authorization);
         } else if (response.data.data && response.data.data.token) {
           localStorage.setItem('userToken', response.data.data.token);
         } else {
           // 没有token但用户已登录，生成临时token
+          // 注意：此操作只应在用户明确登录成功后才执行
           localStorage.setItem('userToken', `temp_${Date.now()}`);
         }
       }

@@ -114,6 +114,15 @@ public interface UserService {
     boolean updatePassword(String oldPassword, String newPassword, String checkPassword, HttpServletRequest request);
     
     /**
+     * 注销用户自己的账号
+     * @param userAccount 用户账号
+     * @param userPassword 用户密码
+     * @param request HTTP请求
+     * @return 是否成功
+     */
+    boolean deleteAccount(String userAccount, String userPassword, HttpServletRequest request);
+    
+    /**
      * 封禁用户
      * @param userId 用户ID
      * @param banDays 封禁天数，0表示永久封禁

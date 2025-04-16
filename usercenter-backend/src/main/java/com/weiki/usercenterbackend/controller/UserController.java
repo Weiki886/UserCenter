@@ -10,6 +10,7 @@ import com.weiki.usercenterbackend.model.request.UserPageRequest;
 import com.weiki.usercenterbackend.model.request.UserRegisterRequest;
 import com.weiki.usercenterbackend.model.request.UserUpdateRequest;
 import com.weiki.usercenterbackend.model.request.PasswordUpdateRequest;
+import com.weiki.usercenterbackend.model.request.DeleteAccountRequest;
 import com.weiki.usercenterbackend.model.response.BaseResponse;
 import com.weiki.usercenterbackend.model.vo.PageVO;
 import com.weiki.usercenterbackend.model.vo.UserVO;
@@ -208,6 +209,30 @@ public class UserController {
         String checkPassword = passwordUpdateRequest.getCheckPassword();
         
         boolean result = userService.updatePassword(oldPassword, newPassword, checkPassword, request);
+        return ResultUtils.success(result);
+    }
+
+    /**
+     * 用户注销自己的账号
+     *
+     * @param deleteAccountRequest 包含用户账号和密码的请求
+     * @return 是否删除成功
+     */
+    @PostMapping("/delete-account")
+    @ApiOperation(value = "注销账号", notes = "用户注销自己的账号")
+    public BaseResponse<Boolean> deleteAccount(@RequestBody DeleteAccountRequest deleteAccountRequest, HttpServletRequest request) {
+        if (deleteAccountRequest == null) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR);
+        }
+        
+        String userAccount = deleteAccountRequest.getUserAccount();
+        String userPassword = deleteAccountRequest.getUserPassword();
+        
+        if (StringUtils.isAnyBlank(userAccount, userPassword)) {
+            throw new BusinessException(ErrorCode.PARAMS_ERROR, "账号和密码不能为空");
+        }
+        
+        boolean result = userService.deleteAccount(userAccount, userPassword, request);
         return ResultUtils.success(result);
     }
 

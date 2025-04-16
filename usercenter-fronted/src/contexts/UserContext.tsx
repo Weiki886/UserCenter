@@ -30,13 +30,27 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // 确保只在客户端执行localStorage相关操作
   useEffect(() => {
     setIsClient(true);
+    
+    // 检查是否有userToken，没有则不应尝试加载用户信息
+    const userToken = localStorage.getItem('userToken');
+    if (!userToken) {
+      setLoading(false);
+      return;
+    }
+    
     // 尝试从localStorage获取用户信息
     try {
       const storedUser = localStorage.getItem('userInfo');
       if (storedUser) {
         const parsedUser = JSON.parse(storedUser);
-        setCurrentUser(parsedUser);
-        setLoading(false);
+        // 验证用户信息的有效性，确保至少包含必要的字段
+        if (isValidUserInfo(parsedUser)) {
+          setCurrentUser(parsedUser);
+          setLoading(false);
+        } else {
+          // 如果无效，则清除存储的信息
+          localStorage.removeItem('userInfo');
+        }
       }
     } catch (e) {
       console.error('解析存储的用户信息失败', e);
@@ -46,6 +60,16 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // 然后再获取最新数据
     fetchUserData();
   }, []);
+
+  // 验证用户信息是否有效的辅助函数
+  const isValidUserInfo = (user: any): user is UserType => {
+    return user 
+      && typeof user === 'object'
+      && typeof user.id === 'number'
+      && typeof user.userAccount === 'string'
+      && typeof user.userRole === 'number'
+      && user.userRole >= 0; // 确保角色值有效
+  };
 
   // 清除用户信息方法
   const clearUserInfo = useCallback(() => {
@@ -68,21 +92,29 @@ export function UserProvider({ children }: { children: ReactNode }) {
     try {
       if (!silent) setLoading(true);
       
+      // 首先检查是否有token，如果没有则不应尝试获取用户信息
+      const userToken = localStorage.getItem('userToken');
+      if (!userToken) {
+        setCurrentUser(null);
+        return null;
+      }
+      
       // 确保先清除api缓存
       await refreshCurrentUser(); // 使用不带缓存的刷新
       
       // 重新获取用户信息
       const user = await getCurrentUser();
       
-      if (user) {
+      if (user && isValidUserInfo(user)) {
         // 确保状态更新并保存到localStorage
         setCurrentUser(user as UserType);
         if (typeof window !== 'undefined') {
           localStorage.setItem('userInfo', JSON.stringify(user));
         }
+        return user;
       }
       
-      return user; // 返回用户信息便于后续操作
+      return null; // 如果用户信息无效，返回null
     } catch (error) {
       console.error('获取用户信息失败:', error);
       // 如果获取用户信息失败，视为用户已登出
@@ -100,13 +132,29 @@ export function UserProvider({ children }: { children: ReactNode }) {
   // 使用缓存版本获取用户信息
   async function fetchUserData() {
     try {
+      // 首先检查是否有token，如果没有则不应尝试获取用户信息
+      const userToken = localStorage.getItem('userToken');
+      if (!userToken) {
+        setCurrentUser(null);
+        setLoading(false);
+        return;
+      }
+      
       // 保持loading状态，直到用户信息获取完成
       setLoading(true);
+      
       const user = await getCurrentUser();
-      if (user) {
+      if (user && isValidUserInfo(user)) {
         setCurrentUser(user as UserType);
         if (typeof window !== 'undefined') {
           localStorage.setItem('userInfo', JSON.stringify(user));
+        }
+      } else {
+        // 如果获取的用户信息无效，清除状态
+        setCurrentUser(null);
+        if (typeof window !== 'undefined') {
+          localStorage.removeItem('userInfo');
+          localStorage.removeItem('userToken');
         }
       }
     } catch (error) {

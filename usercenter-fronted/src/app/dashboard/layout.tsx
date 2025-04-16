@@ -6,7 +6,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import NavBar from '@/components/NavBar';
 import { useUser } from '@/contexts/UserContext';
 
-const { Content, Footer } = Layout;
+const { Content } = Layout;
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
@@ -42,9 +42,6 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
           {children}
         </div>
       </Content>
-      <Footer style={{ textAlign: 'center' }}>
-        用户中心系统 ©{new Date().getFullYear()} Created by Weiki
-      </Footer>
     </Layout>
   );
 } 

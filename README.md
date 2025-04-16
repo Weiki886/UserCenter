@@ -22,6 +22,7 @@
    - 优化了表单验证和提示
    - 改进了页面加载状态的展示
    - 增强了错误处理和用户反馈
+   - 添加全局通用底部栏组件，提供一致的用户体验
 
 5. 用户自助账号注销功能
    - 新增账号自助注销页面，用户可主动删除自己的账号
@@ -96,6 +97,7 @@ UserCenter是一个功能完善的用户管理系统，提供用户注册、登�
 项目采用前后端分离的架构：
 
 - **前端**：基于Next.js构建的React应用，使用Ant Design组件库
+  - 使用共享组件如NavBar、Footer等保持UI一致性
 - **后端**：基于Spring Boot的Java应用，提供RESTful API
 - **数据库**：MySQL数据库存储用户数据
 - **缓存&锁**：可选配置Redis用于分布式锁
@@ -491,8 +493,12 @@ UserCenter/
 │   │   │   └── page.tsx                  # 首页
 │   │   │
 │   │   ├── components/                   # 公共组件
-│   │   ├── contexts/                     # React Context
-│   │   ├── services/                     # API服务
+│   │   │   ├── NavBar.tsx                # 导航栏组件
+│   │   │   ├── Footer.tsx                # 全局底部栏组件
+│   │   │   ├── UserEditModal.tsx         # 用户编辑弹窗
+│   │   │   └── PrivateRoute.tsx          # 私有路由组件
+│   │   │
+│   │   ├── contexts/                     # React上下文
 │   │   │   ├── api.ts                    # API配置
 │   │   │   ├── userApi.ts                # 用户相关API
 │   │   │   └── authApi.ts                # 认证相关API
@@ -554,7 +560,11 @@ spring:
 redisson:
   address: redis://localhost:6379
   database: 0
-  # 其他Redisson配置...
+  pool:
+    max-active: 8
+    max-idle: 8
+    min-idle: 2
+  timeout: 3000
 ```
 
 #### 使用方式

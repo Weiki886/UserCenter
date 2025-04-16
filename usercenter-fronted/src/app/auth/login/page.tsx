@@ -12,7 +12,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [redirecting, setRedirecting] = useState(false);
   const router = useRouter();
-  const { refreshUserInfo, currentUser, loading: userLoading } = useUser();
+  const { refreshUserInfo, currentUser, loading: userLoading, forceUpdate } = useUser();
   // 创建Message实例以避免被销毁
   const [messageApi, contextHolder] = message.useMessage();
 
@@ -41,11 +41,17 @@ export default function LoginPage() {
       // 4. 刷新用户信息并等待完成
       await refreshUserInfo();
       
-      // 5. 显示成功消息
+      // 5. 强制更新整个应用状态
+      forceUpdate();
+      
+      // 6. 显示成功消息
       messageApi.success(`欢迎回来，${userData.username || userData.userAccount}！`);
       
-      // 6. 使用replace而不是push，避免保留历史状态
-      router.replace('/');
+      // 7. 短暂延迟后重定向，确保消息显示
+      setTimeout(() => {
+        // 使用replace而不是push，避免保留历史状态
+        router.replace('/');
+      }, 300);
     } catch (error: any) {
       console.error('登录失败:', error);
       // 显示错误消息

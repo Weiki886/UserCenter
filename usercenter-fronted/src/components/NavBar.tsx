@@ -16,7 +16,7 @@ interface NavItemProps {
 
 export default function NavBar({ activeItem }: { activeItem: string }) {
   const router = useRouter();
-  const { currentUser, clearUserInfo, loading, refreshUserInfo } = useUser();
+  const { currentUser, clearUserInfo, loading, refreshUserInfo, forceUpdate } = useUser();
   const [localUser, setLocalUser] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
 
@@ -42,12 +42,14 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
           setLocalUser(parsedUser);
           // 触发Context更新但不显示加载状态
           refreshUserInfo(true);
+          // 强制更新UI
+          forceUpdate();
         }
       } catch (error) {
         console.error('解析存储的用户信息失败:', error);
       }
     }
-  }, [currentUser, refreshUserInfo, isClient]);
+  }, [currentUser, refreshUserInfo, forceUpdate, isClient]);
 
   // 添加调试日志，帮助排查状态问题
   useEffect(() => {
@@ -90,6 +92,9 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
       setLocalUser(null);
       clearUserInfo();
       
+      // 强制更新UI
+      forceUpdate();
+      
       // 使用Next.js路由器导航到首页
       if (activeItem !== 'home') {
         router.push('/');
@@ -102,6 +107,9 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
       // 即使API调用失败，也确保状态被清除
       setLocalUser(null);
       clearUserInfo();
+      
+      // 强制更新UI
+      forceUpdate();
       
       if (activeItem !== 'home') {
         router.push('/');

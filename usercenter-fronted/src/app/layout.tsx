@@ -4,6 +4,8 @@ import "./globals.css";
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { UserProvider } from "@/contexts/UserContext";
+import Footer from "@/components/Footer";
+import ClientWrapper from "@/components/ClientWrapper";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -31,7 +33,14 @@ export default function RootLayout({
       <body className={inter.className}>
         <ConfigProvider locale={zhCN}>
           <UserProvider>
-            {children}
+            <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
+              <div style={{ flex: '1 0 auto' }}>
+                <ClientWrapper>
+                  {children}
+                </ClientWrapper>
+              </div>
+              <Footer />
+            </div>
           </UserProvider>
         </ConfigProvider>
       </body>

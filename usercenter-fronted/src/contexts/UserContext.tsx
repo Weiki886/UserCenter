@@ -9,7 +9,8 @@ interface UserContextType {
   currentUser: UserType | null;
   loading: boolean;
   refreshUserInfo: (silent?: boolean) => Promise<UserType | null>;
-  clearUserInfo: () => void; // 新增清除用户信息的方法
+  clearUserInfo: () => void; 
+  forceUpdate: () => void; // 新增强制更新方法
 }
 
 // 创建Context
@@ -18,6 +19,7 @@ const UserContext = createContext<UserContextType>({
   loading: true,
   refreshUserInfo: async () => null,
   clearUserInfo: () => {},
+  forceUpdate: () => {},
 });
 
 // 创建Provider组件
@@ -26,6 +28,12 @@ export function UserProvider({ children }: { children: ReactNode }) {
   const [currentUser, setCurrentUser] = useState<UserType | null>(null);
   const [loading, setLoading] = useState(true);
   const [isClient, setIsClient] = useState(false);
+  const [updateKey, setUpdateKey] = useState(0); // 用于强制更新的key
+
+  // 强制更新方法
+  const forceUpdate = useCallback(() => {
+    setUpdateKey(prev => prev + 1);
+  }, []);
 
   // 确保只在客户端执行localStorage相关操作
   useEffect(() => {
@@ -59,7 +67,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     
     // 然后再获取最新数据
     fetchUserData();
-  }, []);
+  }, [updateKey]); // 添加updateKey作为依赖项
 
   // 验证用户信息是否有效的辅助函数
   const isValidUserInfo = (user: any): user is UserType => {
@@ -85,7 +93,10 @@ export function UserProvider({ children }: { children: ReactNode }) {
     // 清除API缓存，确保下次请求会从服务器刷新
     api.invalidateCache('/user/current');
     api.invalidateCache('/user/list/page');
-  }, []);
+    
+    // 强制更新
+    forceUpdate();
+  }, [forceUpdate]);
 
   // 使用useCallback优化刷新用户信息的方法，添加silent参数支持静默刷新
   const refreshUserInfo = useCallback(async (silent: boolean = false) => {
@@ -111,6 +122,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
         if (typeof window !== 'undefined') {
           localStorage.setItem('userInfo', JSON.stringify(user));
         }
+        // 强制更新UI
+        forceUpdate();
         return user;
       }
       
@@ -127,7 +140,7 @@ export function UserProvider({ children }: { children: ReactNode }) {
     } finally {
       if (!silent) setLoading(false);
     }
-  }, []);
+  }, [forceUpdate]);
 
   // 使用缓存版本获取用户信息
   async function fetchUserData() {
@@ -187,7 +200,8 @@ export function UserProvider({ children }: { children: ReactNode }) {
     loading,
     refreshUserInfo,
     clearUserInfo,
-  }), [currentUser, loading, refreshUserInfo, clearUserInfo]);
+    forceUpdate,
+  }), [currentUser, loading, refreshUserInfo, clearUserInfo, forceUpdate]);
 
   return (
     <UserContext.Provider value={contextValue}>

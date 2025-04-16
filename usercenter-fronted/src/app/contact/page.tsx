@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react';
 import { getCurrentUser, UserType } from '@/services/userService';
 import NavBar from '@/components/NavBar';
 
-const { Content, Footer } = Layout;
+const { Content } = Layout;
 const { Title, Paragraph } = Typography;
 
 export default function Contact() {
@@ -50,16 +50,6 @@ export default function Contact() {
           </Card>
         </div>
       </Content>
-
-      <Footer style={{ 
-        textAlign: 'center',
-        background: '#fff',
-        color: '#000',
-        padding: '12px 0',
-        borderTop: '1px solid #f0f0f0'
-      }}>
-        用户中心系统 ©{new Date().getFullYear()} by 凭君语未可
-      </Footer>
     </Layout>
   );
 } 

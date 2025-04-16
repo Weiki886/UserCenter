@@ -44,6 +44,11 @@
    - 完善用户状态和封禁状态管理
    - 优化封禁状态显示和处理逻辑
 
+4. 新增示例代码
+   - 提供基础Web示例代码供参考学习
+   - 包含基本HTTP请求处理
+   - 路径变量处理示例
+
 ## 项目介绍
 
 UserCenter是一个功能完善的用户管理系统，提供用户注册、登录、信息管理等核心功能。本项目采用前后端分离架构，包含完整的前端界面和后端API，可用作独立的用户中心系统，也可集成到其他业务系统中。
@@ -144,31 +149,216 @@ mvn install
 ### 启动服务
 前端开发服务器：
 ```bash
-npm run dev
+cd usercenter-fronted
+npm run dev         # 标准模式启动
+# 或使用优化的启动方式
+npm run dev:fast    # Turbo模式启动（更快的编译速度）
+npm run dev:win     # Windows环境优化的Turbo模式
 ```
 
 后端服务器：
 ```bash
+cd usercenter-backend
 mvn spring-boot:run
 ```
 
 ### 配置说明
-1. 前端配置（.env.local）：
+1. 前端配置（.env.development）：
 ```env
-NEXT_PUBLIC_API_BASE_URL=http://localhost:8080
+# 启用 Turbo 模式
+NEXT_TURBO=1
+
+# 调试信息（默认注释状态）
+# NEXT_TELEMETRY_DEBUG=1
+# TURBOPACK_DEV_SERVER_CHUNK=1
 ```
 
 2. 后端配置（application.yml）：
 ```yaml
+server:
+  port: 8083                 # 服务端口号
+  servlet:
+    session:
+      timeout: 86400         # Session超时时间（秒）
+
 spring:
   datasource:
-    url: jdbc:mysql://localhost:3306/user_center
-    username: your_username
-    password: your_password
+    driver-class-name: com.mysql.cj.jdbc.Driver
+    url: jdbc:mysql://localhost:3306/usercenter_db?serverTimezone=UTC&useUnicode=true&characterEncoding=utf-8&useSSL=false&allowPublicKeyRetrieval=true
+    username: root           # 数据库用户名
+    password: 123456         # 数据库密码
+  
+  # Redis配置
   redis:
+    enabled: true            # 是否启用Redis功能
     host: localhost
     port: 6379
+    database: 0
+    timeout: 10000
+    lettuce:
+      pool:
+        max-active: 20       # 连接池最大连接数
+        max-idle: 8          # 连接池最大空闲连接数
+        min-idle: 2          # 连接池最小空闲连接数
+        max-wait: 3000ms     # 连接池最大等待时间
+    # Redis键事件通知配置，用于监听键过期
+    notify-keyspace-events: Ex
+  
+  # RabbitMQ配置
+  rabbitmq:
+    enabled: true            # 是否启用RabbitMQ功能
+    host: localhost
+    port: 5672
+    username: guest
+    password: guest
+    virtual-host: /
+    # 消息确认配置
+    publisher-confirm-type: correlated
+    publisher-returns: true
+    template:
+      mandatory: true
+    # 消费者配置
+    listener:
+      simple:
+        acknowledge-mode: manual
+        prefetch: 1
+        concurrency: 3        # 最小消费者数
+        max-concurrency: 10   # 最大消费者数
+
+# Redisson配置（仅在 redis.enabled=true 时生效）
+redisson:
+  address: redis://localhost:6379
+  database: 0
+  pool:
+    max-active: 8
+    max-idle: 8
+    min-idle: 2
+  timeout: 3000
+
+# MyBatis-Plus配置
+mybatis-plus:
+  mapper-locations: classpath:mappers/*.xml
+  type-aliases-package: com.weiki.usercenterbackend.model.domain
+  configuration:
+    map-underscore-to-camel-case: true
+    log-impl: org.apache.ibatis.logging.stdout.StdOutImpl
+  global-config:
+    db-config:
+      # 全局逻辑删除的字段名
+      logic-delete-field: isDelete
+      # 逻辑已删除值(1)
+      logic-delete-value: 1
+      # 逻辑未删除值(0)
+      logic-not-delete-value: 0
+
+# 管理端点配置
+management:
+  endpoints:
+    web:
+      exposure:
+        include: "*"                # 暴露所有端点
+        exclude: "shutdown"         # 禁用敏感端点
+      base-path: /actuator          # 端点基础路径
+  endpoint:
+    health:
+      show-details: always          # 显示详细健康信息
+      probes:
+        enabled: true               # 启用Kubernetes探针
+    prometheus:
+      enabled: true                 # 启用Prometheus端点
+
+# 限流系统配置
+rate:
+  limit:
+    global:
+      qps: 10.0               # 全局默认QPS限制，所有API共享此限流器
+      warmup: 0               # 全局默认预热时间（秒），0表示无预热期
+      timeout: 0              # 全局默认超时时间（毫秒），0表示非阻塞模式
+    user:
+      qps: 5.0                # 用户级别默认QPS限制，每个用户单独计数
+    distributed:
+      enabled: true           # 是否启用分布式限流（基于Redis实现）
+
+# 缓存配置
+cache:
+  user:
+    expire: 3600              # 用户缓存过期时间（秒）
+    prefix: "user:"
+    enable: true              # 是否启用用户缓存
+  auth:
+    token-expire: 1800        # 访问令牌过期时间（秒）
+    refresh-token-expire: 604800  # 刷新令牌过期时间（秒，7天）
 ```
+
+#### 配置说明详解
+
+1. **服务器配置**
+   - 默认端口: 8083
+   - Session超时: 24小时（86400秒）
+   
+2. **数据库配置**
+   - 使用MySQL数据库，支持MySQL 5.7+
+   - 默认数据库名: usercenter_db
+   - 字符集: UTF-8
+   - 时区: UTC
+   
+3. **Redis配置**
+   - 可通过`spring.redis.enabled`控制是否启用Redis功能
+   - 如设置为false，系统将使用本地缓存和锁，适合开发环境
+   - 生产环境建议启用Redis以支持分布式功能
+   
+4. **RabbitMQ配置**
+   - 可通过`spring.rabbitmq.enabled`控制是否启用消息队列功能
+   - 支持消息确认机制和手动ACK模式，确保消息可靠性
+   - 配置了消费者并发数，可根据实际负载调整
+   
+5. **限流配置**
+   - 支持全局限流和用户级别限流
+   - 可配置预热期、超时时间和突发流量处理
+   - 支持分布式限流，依赖Redis实现
+   
+6. **缓存配置**
+   - 用户信息缓存: 默认1小时过期
+   - 认证令牌: 访问令牌30分钟，刷新令牌7天
+   - 所有缓存均支持自定义过期时间
+
+#### 环境特定配置
+
+在生产环境中，建议调整以下配置:
+
+1. **数据库配置**
+   - 使用更安全的数据库凭证
+   - 配置数据库连接池参数以优化性能
+   
+2. **Redis配置**
+   - 启用密码认证
+   - 配置适当的连接池大小
+   - 考虑使用Redis集群提高可用性
+   
+3. **日志级别**
+   - 将日志级别从`debug`调整为`info`或`warn`
+   
+4. **安全配置**
+   - 禁用Knife4j API文档或启用生产模式
+   - 限制Actuator端点访问
+
+#### 前端环境变量配置
+
+前端支持以下环境配置文件:
+
+1. `.env.development` - 开发环境配置
+2. `.env.production` - 生产环境配置
+3. `.env.local` - 本地覆盖配置（不提交到版本控制）
+
+常用环境变量:
+
+- `NEXT_TURBO` - 控制是否启用Turbo模式，提升开发体验
+- `NEXT_PUBLIC_API_BASE_URL` - API基础URL，可配置为后端服务地址
+
+如果需要添加自定义环境变量，请确保:
+- 客户端使用的变量需以`NEXT_PUBLIC_`开头
+- 服务端专用变量无需特殊前缀
+- 敏感信息应仅配置在服务端变量中
 
 ## 开发指南
 
@@ -210,6 +400,12 @@ UserCenter/
 │   │   │   │   │   ├── UserController.java       # 用户相关控制器
 │   │   │   │   │   ├── OrderController.java      # 订单控制器（含监控指标示例）
 │   │   │   │   │   └── ExampleRateLimitController.java # 限流示例控制器
+│   │   │   │   │
+│   │   │   │   ├── demos/                # 示例代码
+│   │   │   │   │   └── web/                      # Web示例
+│   │   │   │   │       ├── BasicController.java  # 基础控制器示例
+│   │   │   │   │       ├── PathVariableController.java # 路径变量示例
+│   │   │   │   │       └── User.java             # 用户示例类
 │   │   │   │   │
 │   │   │   │   ├── exception/            # 异常处理
 │   │   │   │   │   ├── GlobalExceptionHandler.java     # 全局异常处理器
@@ -314,10 +510,6 @@ UserCenter/
 │   ├── package.json                      # 依赖配置
 │   └── .gitignore                        # Git忽略配置
 │
-├── src/                                  # 通用源代码
-│   ├── models/                           # 通用模型
-│   ├── services/                         # 通用服务
-│   └── utils/                            # 通用工具函数
 │
 ├── update_baseresponse_imports.ps1       # BaseResponse导入修复脚本 (Windows版)
 ├── update_baseresponse_imports.sh        # BaseResponse导入修复脚本 (Unix版)

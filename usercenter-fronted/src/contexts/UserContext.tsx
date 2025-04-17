@@ -41,7 +41,29 @@ export function UserProvider({ children }: { children: ReactNode }) {
     
     // 检查是否有userToken，没有则不应尝试加载用户信息
     const userToken = localStorage.getItem('userToken');
-    if (!userToken) {
+    
+    // 添加检查token有效期的逻辑
+    if (userToken) {
+      try {
+        // 检查token是否有效（这里可以添加解析JWT的逻辑，或者直接尝试刷新用户信息）
+        // 如果项目首次启动，直接清除之前的登录状态
+        const isFirstStart = sessionStorage.getItem('appStarted') !== 'true';
+        if (isFirstStart) {
+          console.log('首次启动应用，清除之前的登录状态');
+          localStorage.removeItem('userToken');
+          localStorage.removeItem('userInfo');
+          sessionStorage.setItem('appStarted', 'true');
+          setLoading(false);
+          return;
+        }
+      } catch (e) {
+        console.error('检查token有效期失败', e);
+        localStorage.removeItem('userToken');
+        localStorage.removeItem('userInfo');
+        setLoading(false);
+        return;
+      }
+    } else {
       setLoading(false);
       return;
     }

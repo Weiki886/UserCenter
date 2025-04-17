@@ -33,20 +33,30 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
     if (currentUser) {
       setLocalUser(currentUser);
     } 
-    // 否则检查localStorage
+    // 否则检查localStorage - 在首次启动时不检查localStorage以确保显示未登录状态
     else {
-      try {
-        const storedUser = localStorage.getItem('userInfo');
-        if (storedUser) {
-          const parsedUser = JSON.parse(storedUser);
-          setLocalUser(parsedUser);
-          // 触发Context更新但不显示加载状态
-          refreshUserInfo(true);
-          // 强制更新UI
-          forceUpdate();
+      const isFirstStart = sessionStorage.getItem('appStarted') !== 'true';
+      
+      if (!isFirstStart) {
+        try {
+          const storedUser = localStorage.getItem('userInfo');
+          if (storedUser) {
+            const parsedUser = JSON.parse(storedUser);
+            setLocalUser(parsedUser);
+            // 触发Context更新但不显示加载状态
+            refreshUserInfo(true);
+            // 强制更新UI
+            forceUpdate();
+          }
+        } catch (error) {
+          console.error('解析存储的用户信息失败:', error);
         }
-      } catch (error) {
-        console.error('解析存储的用户信息失败:', error);
+      } else {
+        // 首次启动，确保清除任何现有的用户数据
+        setLocalUser(null);
+        localStorage.removeItem('userInfo');
+        localStorage.removeItem('userToken');
+        sessionStorage.setItem('appStarted', 'true');
       }
     }
   }, [currentUser, refreshUserInfo, forceUpdate, isClient]);
@@ -156,7 +166,7 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
                 height: '64px', 
                 lineHeight: '64px',
                 backgroundColor: item.active ? '#f0f0f0' : 'transparent',
-                display: item.title === '用户管理' && (!loading && currentUser?.userRole !== 1) ? 'none' : 'block'
+                display: item.title === '用户管理' && (loading || !currentUser || currentUser?.userRole !== 1) ? 'none' : 'block'
               }}
             >
               {item.title}

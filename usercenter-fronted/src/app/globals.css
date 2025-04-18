@@ -173,3 +173,38 @@ body.auth-page {
   overflow-y: auto;
   max-height: 100vh;
 }
+
+/* 确保内容在所有情况下都能显示 */
+.home-content {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  transition: opacity 0.3s ease-in-out;
+}
+
+/* 处理页面闪烁 */
+html.navigating .home-content {
+  opacity: 0.95;
+}
+
+/* 修复浏览器后退时可能的白屏问题 */
+body.navigation-back .ant-layout-content {
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+}
+
+/* 确保滚动正常工作 */
+html, body {
+  overscroll-behavior-x: none; /* 防止水平滚动引起的页面刷新 */
+}
+
+/* 添加动画以平滑过渡 */
+.ant-layout-content {
+  animation: fadeIn 0.2s ease-in-out;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0.9; }
+  to { opacity: 1; }
+}

@@ -1,10 +1,10 @@
-import { Layout, Avatar, Dropdown, Skeleton, message } from 'antd';
+import { Layout, Avatar, Dropdown, Skeleton, message, Button } from 'antd';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { UserOutlined, SettingOutlined, LogoutOutlined, LockOutlined, DeleteOutlined } from '@ant-design/icons';
 import { logout } from '@/services/userService';
 import { useUser } from '@/contexts/UserContext';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 
 const { Header } = Layout;
 
@@ -19,60 +19,65 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
   const { currentUser, clearUserInfo, loading, refreshUserInfo, forceUpdate } = useUser();
   const [localUser, setLocalUser] = useState<any>(null);
   const [isClient, setIsClient] = useState(false);
+  const [navReady, setNavReady] = useState(false);
 
   // 客户端渲染检测
   useEffect(() => {
     setIsClient(true);
+    // 确保导航栏总是在短时间内可用，即使其他操作还未完成
+    setTimeout(() => setNavReady(true), 100);
   }, []);
 
-  // 添加状态同步逻辑
-  useEffect(() => {
-    if (!isClient) return; // 只在客户端执行
+  // 优化的状态同步逻辑
+  const syncUserInfo = useCallback(async () => {
+    if (!isClient) return;
 
-    // 如果Context中有用户，使用Context中的用户
+    try {
+      // 首先使用本地存储的用户信息（如果有）
+      const storedUser = localStorage.getItem('userInfo');
+      if (storedUser) {
+        try {
+          const parsedUser = JSON.parse(storedUser);
+          setLocalUser(parsedUser);
+        } catch (e) {
+          console.error('解析用户信息失败', e);
+        }
+      }
+
+      // 检查是否有token但还没有用户信息
+      const userToken = localStorage.getItem('userToken');
+      const loginSuccess = localStorage.getItem('loginSuccess');
+      
+      if (userToken) {
+        // 静默更新用户信息，不影响UI显示
+        refreshUserInfo(true).then(user => {
+          if (user) {
+            setLocalUser(user);
+            if (loginSuccess === 'true') {
+              localStorage.removeItem('loginSuccess');
+            }
+          }
+        }).catch(e => {
+          console.error('刷新用户信息失败', e);
+        });
+      }
+    } catch (e) {
+      console.error('同步用户信息失败:', e);
+    }
+  }, [isClient, refreshUserInfo]);
+
+  useEffect(() => {
+    syncUserInfo();
+  }, [syncUserInfo]);
+
+  // 当Context中的用户信息变化时更新本地状态
+  useEffect(() => {
     if (currentUser) {
       setLocalUser(currentUser);
-    } 
-    // 否则检查localStorage - 在首次启动时不检查localStorage以确保显示未登录状态
-    else {
-      const isFirstStart = sessionStorage.getItem('appStarted') !== 'true';
-      
-      if (!isFirstStart) {
-        try {
-          const storedUser = localStorage.getItem('userInfo');
-          if (storedUser) {
-            const parsedUser = JSON.parse(storedUser);
-            setLocalUser(parsedUser);
-            // 触发Context更新但不显示加载状态
-            refreshUserInfo(true);
-            // 强制更新UI
-            forceUpdate();
-          }
-        } catch (error) {
-          console.error('解析存储的用户信息失败:', error);
-        }
-      } else {
-        // 首次启动，确保清除任何现有的用户数据
-        setLocalUser(null);
-        localStorage.removeItem('userInfo');
-        localStorage.removeItem('userToken');
-        sessionStorage.setItem('appStarted', 'true');
-      }
     }
-  }, [currentUser, refreshUserInfo, forceUpdate, isClient]);
+  }, [currentUser]);
 
-  // 添加调试日志，帮助排查状态问题
-  useEffect(() => {
-    if (!isClient) return; // 只在客户端执行
-    
-    console.log('NavBar状态更新:', { 
-      isLoggedIn: !!currentUser, 
-      localUserExists: !!localUser,
-      loading,
-      username: currentUser?.username || localUser?.username
-    });
-  }, [currentUser, localUser, loading, isClient]);
-
+  // 基础导航项目
   const navItems = [
     { title: '首页', link: '/', active: activeItem === 'home' },
     { title: '用户管理', link: '/dashboard/users', active: activeItem === 'users' },
@@ -111,15 +116,11 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
       }
     } catch (error) {
       console.error('退出登录失败:', error);
-      // 显示退出失败提示
       message.error('退出登录失败，请重试');
       
       // 即使API调用失败，也确保状态被清除
       setLocalUser(null);
       clearUserInfo();
-      
-      // 强制更新UI
-      forceUpdate();
       
       if (activeItem !== 'home') {
         router.push('/');
@@ -127,6 +128,10 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
     }
   };
 
+  // 获取显示的用户，优先使用currentUser，然后是localUser
+  const displayUser = currentUser || localUser;
+  
+  // 总是渲染导航栏，不依赖于navReady或其他异步状态
   return (
     <Header style={{ 
       padding: 0, 
@@ -169,7 +174,7 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
                 height: '64px', 
                 lineHeight: '64px',
                 fontWeight: item.active ? 'bold' : 'normal',
-                display: item.title === '用户管理' && (loading || !currentUser || currentUser?.userRole !== 1) ? 'none' : 'block'
+                display: item.title === '用户管理' && (!isClient || !displayUser || displayUser?.userRole !== 1) ? 'none' : 'block'
               }}
             >
               {item.title}
@@ -184,9 +189,12 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
           justifyContent: 'flex-end', 
           paddingRight: '30px' 
         }}>
-          {loading ? (
+          {!isClient ? (
+            // 客户端渲染前显示简单占位符
+            <div style={{ width: '32px', height: '32px' }}></div>
+          ) : loading && !displayUser ? (
             <Skeleton.Avatar active size="small" style={{ marginRight: 8 }} />
-          ) : (currentUser || localUser) ? (
+          ) : displayUser ? (
             <Dropdown menu={{
               items: [
                 {
@@ -251,24 +259,40 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
                 {
                   key: '5',
                   icon: <LogoutOutlined />,
-                  label: '退出登录',
-                  onClick: handleLogout,
+                  label: (
+                    <span onClick={handleLogout} style={{ cursor: 'pointer' }}>
+                      退出登录
+                    </span>
+                  ),
                 },
               ],
             }}>
-              <span style={{ cursor: 'pointer', color: '#000' }}>
+              <div style={{ display: 'flex', alignItems: 'center', cursor: 'pointer' }}>
                 <Avatar 
                   size="small" 
-                  icon={<UserOutlined />} 
-                  src={(currentUser || localUser)?.avatarUrl} 
-                  style={{ marginRight: 8 }} 
+                  src={displayUser.avatarUrl} 
+                  icon={!displayUser.avatarUrl && <UserOutlined />} 
+                  style={{ marginRight: 8 }}
                 />
-                {(currentUser || localUser)?.username || '用户'}
-              </span>
+                <span style={{ maxWidth: '100px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  {displayUser.username || displayUser.userAccount}
+                </span>
+              </div>
             </Dropdown>
           ) : (
-            <Link href="/auth/login" style={{ color: '#000' }}>
-              登录/注册
+            <Link href="/auth/login">
+              <Button type="text" style={{ 
+                color: '#1890ff', 
+                padding: '4px 12px', 
+                border: '1px solid #1890ff', 
+                borderRadius: '4px',
+                fontSize: '14px',
+                height: '32px',
+                display: 'flex',
+                alignItems: 'center'
+              }}>
+                登录/注册
+              </Button>
             </Link>
           )}
         </div>

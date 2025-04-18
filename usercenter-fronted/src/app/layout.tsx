@@ -30,11 +30,13 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
+      <head>
+        <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+      </head>
       <body className={inter.className} style={{ 
         margin: 0, 
         padding: 0, 
-        overflow: 'hidden',
-        maxWidth: '100vw',
+        background: '#f5f5f5', 
       }}>
         <ConfigProvider locale={zhCN}>
           <UserProvider>
@@ -43,18 +45,10 @@ export default function RootLayout({
               flexDirection: 'column', 
               minHeight: '100vh', 
               width: '100%',
-              maxWidth: '100vw',
-              margin: 0, 
-              padding: 0,
-              overflow: 'hidden',
             }}>
               <div style={{ 
                 flex: '1 0 auto', 
                 width: '100%', 
-                maxWidth: '100vw',
-                margin: 0, 
-                padding: 0, 
-                overflow: 'hidden',
                 position: 'relative',
               }}>
                 <ClientWrapper>

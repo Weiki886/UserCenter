@@ -56,16 +56,33 @@ api.interceptors.response.use(
       // 检查是否是登录响应，如果是则保存token
       const url = response.config.url;
       if (url && url.includes('/user/login') && response.data.code === 0 && response.data.data) {
+        let token = null;
+        
         // 确保只有在显式登录成功时才设置token
         if (response.headers && response.headers.authorization) {
-          localStorage.setItem('userToken', response.headers.authorization);
+          token = response.headers.authorization;
+          localStorage.setItem('userToken', token);
         } else if (response.data.data && response.data.data.token) {
-          localStorage.setItem('userToken', response.data.data.token);
+          token = response.data.data.token;
+          localStorage.setItem('userToken', token);
         } else {
           // 没有token但用户已登录，生成临时token
-          // 注意：此操作只应在用户明确登录成功后才执行
-          localStorage.setItem('userToken', `temp_${Date.now()}`);
+          token = `temp_${Date.now()}`;
+          localStorage.setItem('userToken', token);
         }
+        
+        // 设置登录成功标志，供其他组件检测
+        localStorage.setItem('loginSuccess', 'true');
+        
+        // 设置登录时间戳
+        localStorage.setItem('userLoginTime', Date.now().toString());
+        
+        // 记录日志
+        console.log('API拦截器: 检测到登录成功，设置token和标志:', { 
+          token, 
+          url,
+          timestamp: new Date().toISOString()
+        });
       }
     }
     return response;
@@ -92,6 +109,7 @@ api.interceptors.response.use(
         if (typeof window !== 'undefined') {
           localStorage.removeItem('userToken');
           localStorage.removeItem('userInfo');
+          localStorage.removeItem('loginSuccess');
         }
       }
       

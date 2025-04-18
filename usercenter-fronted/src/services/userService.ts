@@ -94,6 +94,21 @@ export async function login(params: UserLoginParams): Promise<UserType> {
       throw new Error(errorMessage);
     }
     
+    // 登录成功后，立即将用户信息保存到localStorage
+    if (data && typeof window !== 'undefined') {
+      // 强制清除之前的缓存
+      api.invalidateCache('/user/current');
+      
+      // 直接将用户信息保存到localStorage
+      localStorage.setItem('userInfo', JSON.stringify(data));
+      
+      // 确保设置登录时间戳
+      localStorage.setItem('userLoginTime', Date.now().toString());
+      
+      // 记录登录成功
+      console.log('登录成功，保存用户信息:', data.userAccount);
+    }
+    
     return data;
   } catch (error: any) {
     // 处理Axios错误，提取服务端返回的错误信息

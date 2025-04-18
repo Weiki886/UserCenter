@@ -134,9 +134,12 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
       position: 'sticky', 
       top: 0, 
       zIndex: 1,
-      boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)'
+      boxShadow: '0 1px 4px rgba(0, 0, 0, 0.1)',
+      width: '100%',
+      margin: 0,
+      borderTop: 0
     }}>
-      <div style={{ maxWidth: '1400px', margin: '0 auto', display: 'flex' }}>
+      <div style={{ width: '100%', display: 'flex' }}>
         <div style={{ 
           width: '180px', 
           height: '64px', 
@@ -162,10 +165,10 @@ export default function NavBar({ activeItem }: { activeItem: string }) {
               href={item.link}
               style={{ 
                 padding: '0 30px', 
-                color: '#000', 
+                color: item.active ? '#1890ff' : '#000', 
                 height: '64px', 
                 lineHeight: '64px',
-                backgroundColor: item.active ? '#f0f0f0' : 'transparent',
+                fontWeight: item.active ? 'bold' : 'normal',
                 display: item.title === '用户管理' && (loading || !currentUser || currentUser?.userRole !== 1) ? 'none' : 'block'
               }}
             >

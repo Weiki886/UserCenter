@@ -3,10 +3,10 @@
 import React, { useState, useEffect } from 'react';
 import { Button, Form, Input, message, Card, Divider, Spin } from 'antd';
 import { UserOutlined, LockOutlined } from '@ant-design/icons';
-import { login } from '@/services/userService';
+import { login, UserLoginParams } from '@/services/userService';
 import { useRouter } from 'next/navigation';
-import Link from 'next/link';
 import { useUser } from '@/contexts/UserContext';
+import styles from '../auth.module.css';
 
 export default function LoginPage() {
   const [loading, setLoading] = useState(false);
@@ -23,113 +23,110 @@ export default function LoginPage() {
     }
   }, [currentUser, router]);
 
-  const onFinish = async (values: { userAccount: string; userPassword: string }) => {
+  const onFinish = async (values: UserLoginParams) => {
     try {
       setLoading(true);
+      const response = await login(values);
       
-      // 1. 登录过程
-      const userData = await login(values);
+      messageApi.success('登录成功！');
       
-      // 2. 立即保存用户数据到localStorage (只在客户端执行)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem('userInfo', JSON.stringify(userData));
-      }
-      
-      // 3. 标记为重定向状态
-      setRedirecting(true);
-      
-      // 4. 刷新用户信息并等待完成
+      // 刷新用户信息
       await refreshUserInfo();
-      
-      // 5. 强制更新整个应用状态
       forceUpdate();
       
-      // 6. 显示成功消息
-      messageApi.success(`欢迎回来，${userData.username || userData.userAccount}！`);
+      // 设置重定向状态
+      setRedirecting(true);
       
-      // 7. 短暂延迟后重定向，确保消息显示
+      // 延迟导航到主页，以便用户看到登录成功消息
       setTimeout(() => {
-        // 使用replace而不是push，避免保留历史状态
-        router.replace('/');
-      }, 300);
+        router.push('/');
+      }, 1000);
     } catch (error: any) {
-      console.error('登录失败:', error);
-      // 显示错误消息
-      messageApi.error(error.message || '登录失败，请稍后再试');
-      setRedirecting(false);
+      messageApi.error(error.message || '登录失败，请检查账号密码');
     } finally {
       setLoading(false);
     }
   };
 
-  // 显示加载状态
-  if (userLoading) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin spinning={true} size="large">
-          <div style={{ padding: '50px', textAlign: 'center' }}>加载中...</div>
-        </Spin>
-      </div>
-    );
-  }
+  // 处理跳转到注册页
+  const handleGoToRegister = () => {
+    router.push('/auth/register');
+  };
 
-  // 显示重定向中状态
-  if (redirecting) {
-    return (
-      <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh' }}>
-        <Spin spinning={true} size="large">
-          <div style={{ padding: '50px', textAlign: 'center' }}>登录成功，正在跳转...</div>
-        </Spin>
-      </div>
-    );
-  }
+  // 添加html/body类，支持滚动
+  useEffect(() => {
+    document.documentElement.classList.add('auth-page');
+    document.body.classList.add('auth-page');
+    
+    return () => {
+      document.documentElement.classList.remove('auth-page');
+      document.body.classList.remove('auth-page');
+    };
+  }, []);
 
   return (
-    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100vh', background: '#f0f2f5' }}>
+    <div className={styles.scrollableContainer}>
       {contextHolder}
-      <Card title="用户登录" style={{ width: 400 }}>
-        <Form
-          name="login"
-          onFinish={onFinish}
-          autoComplete="off"
-          size="large"
-        >
-          <Form.Item
-            name="userAccount"
-            rules={[
-              { required: true, message: '请输入用户账号!' },
-              { min: 4, message: '账号长度不能小于4位' }
-            ]}
-          >
-            <Input prefix={<UserOutlined />} placeholder="用户账号" />
-          </Form.Item>
-
-          <Form.Item
-            name="userPassword"
-            rules={[
-              { required: true, message: '请输入密码!' },
-              { min: 8, message: '密码长度不能小于8位' }
-            ]}
-          >
-            <Input.Password
-              prefix={<LockOutlined />}
-              type="password"
-              placeholder="密码"
-            />
-          </Form.Item>
-
-          <Form.Item>
-            <Button type="primary" htmlType="submit" loading={loading} block>
-              登录
-            </Button>
-          </Form.Item>
-          
-          <Divider />
-          
-          <div>
-            没有账号？ <Link href="/auth/register" style={{ color: '#1890ff' }}>立即注册</Link>
+      <Card 
+        className={styles.authCard}
+        title={<div className={styles.authTitle}>登录用户中心</div>}
+      >
+        {redirecting ? (
+          <div className={styles.redirectContainer}>
+            <Spin spinning size="large" />
+            <div className={styles.redirectText}>登录成功，正在跳转...</div>
           </div>
-        </Form>
+        ) : (
+          <Form
+            name="login_form"
+            initialValues={{ remember: true }}
+            onFinish={onFinish}
+            size="large"
+            layout="vertical"
+          >
+            <Form.Item
+              name="userAccount"
+              rules={[{ required: true, message: '请输入用户账号!' }]}
+            >
+              <Input 
+                prefix={<UserOutlined className={styles.inputIcon} />} 
+                placeholder="用户账号" 
+              />
+            </Form.Item>
+
+            <Form.Item
+              name="userPassword"
+              rules={[{ required: true, message: '请输入密码!' }]}
+            >
+              <Input.Password
+                prefix={<LockOutlined className={styles.inputIcon} />}
+                placeholder="密码"
+              />
+            </Form.Item>
+
+            <Form.Item>
+              <Button 
+                type="primary" 
+                htmlType="submit" 
+                className={styles.actionButton} 
+                loading={loading}
+              >
+                登录
+              </Button>
+            </Form.Item>
+
+            <Divider plain>
+              <span className={styles.dividerText}>其他选项</span>
+            </Divider>
+            
+            <div className={styles.linkText}>
+              <span>还没有账号？</span>
+              <Button type="link" onClick={handleGoToRegister} style={{ padding: 0 }}>
+                立即注册
+              </Button>
+            </div>
+          </Form>
+        )}
       </Card>
     </div>
   );

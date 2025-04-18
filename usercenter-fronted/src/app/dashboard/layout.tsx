@@ -35,10 +35,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ 
+      minHeight: '100vh', 
+      width: '100%', 
+      margin: 0, 
+      padding: 0, 
+      overflowX: 'hidden',
+      overflowY: 'auto'
+    }}>
       <NavBar activeItem={getActiveNavItem()} />
-      <Content style={{ padding: '0 50px', marginTop: 64 }}>
-        <div style={{ background: '#fff', padding: 24, minHeight: 380 }}>
+      <Content style={{ 
+        padding: '0 50px', 
+        marginTop: 64, 
+        width: '100%', 
+        overflowY: 'auto',
+        overflowX: 'hidden'
+      }}>
+        <div style={{ 
+          background: '#fff', 
+          padding: 24, 
+          minHeight: 'calc(100vh - 64px - 70px)'
+        }}>
           {children}
         </div>
       </Content>

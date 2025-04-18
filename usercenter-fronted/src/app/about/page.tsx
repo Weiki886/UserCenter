@@ -27,13 +27,26 @@ export default function About() {
   }, []);
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ 
+      minHeight: '100vh', 
+      width: '100%', 
+      margin: 0, 
+      padding: 0, 
+      overflowX: 'hidden',
+      overflowY: 'auto'
+    }}>
       <NavBar activeItem="about" />
 
-      <Content style={{ padding: '50px 50px', maxWidth: '1200px', margin: '0 auto' }}>
+      <Content style={{ 
+        padding: '0 50px', 
+        paddingTop: '30px', 
+        width: '100%', 
+        overflowY: 'auto',
+        overflowX: 'hidden'
+      }}>
         <div style={{ textAlign: 'center', marginBottom: '60px' }}>
           <Title level={1}>关于系统</Title>
-          <Paragraph style={{ fontSize: '18px', maxWidth: '800px', margin: '20px auto' }}>
+          <Paragraph style={{ fontSize: '18px', margin: '20px auto' }}>
             用户中心系统是一个现代化的用户管理平台，旨在提供安全、高效、易用的用户账号管理服务。
           </Paragraph>
         </div>

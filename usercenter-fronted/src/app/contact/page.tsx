@@ -27,13 +27,26 @@ export default function Contact() {
   }, []);
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ 
+      minHeight: '100vh', 
+      width: '100%', 
+      margin: 0, 
+      padding: 0, 
+      overflowX: 'hidden',
+      overflowY: 'auto'
+    }}>
       <NavBar activeItem="contact" />
 
-      <Content style={{ padding: '50px 50px', maxWidth: '1200px', margin: '0 auto' }}>
+      <Content style={{ 
+        padding: '0 50px', 
+        paddingTop: '30px', 
+        width: '100%', 
+        overflowY: 'auto',
+        overflowX: 'hidden'
+      }}>
         <div style={{ textAlign: 'center', marginBottom: '60px' }}>
           <Title level={1}>联系我们</Title>
-          <Paragraph style={{ fontSize: '18px', maxWidth: '800px', margin: '20px auto' }}>
+          <Paragraph style={{ fontSize: '18px', margin: '20px auto' }}>
             如有任何问题或建议，欢迎随时与我们联系。我们将尽快回复您的询问。
           </Paragraph>
         </div>

@@ -26,10 +26,23 @@ export default function Home() {
     : currentUser !== null;
 
   return (
-    <Layout style={{ minHeight: '100vh' }}>
+    <Layout style={{ 
+      minHeight: '100vh', 
+      width: '100%', 
+      margin: 0, 
+      padding: 0,
+      overflow: 'hidden',
+      maxWidth: '100vw'
+    }}>
       <NavBar activeItem="home" />
 
-      <Content style={{ padding: '50px 50px', maxWidth: '1200px', margin: '0 auto' }}>
+      <Content style={{ 
+        padding: '0 50px', 
+        paddingTop: '30px', 
+        width: '100%',
+        overflow: 'hidden',
+        maxWidth: '100vw'
+      }}>
         {loading ? (
           <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '50vh' }}>
             <Spin spinning={true} size="large">
@@ -40,7 +53,7 @@ export default function Home() {
           <>
             <div style={{ textAlign: 'center', marginBottom: '60px' }}>
               <Title level={1}>用户中心系统</Title>
-              <Paragraph style={{ fontSize: '18px', maxWidth: '800px', margin: '0 auto' }}>
+              <Paragraph style={{ fontSize: '18px', margin: '0 auto' }}>
                 一站式用户管理平台，提供完善的用户注册、认证、授权和管理功能
               </Paragraph>
               {!isLoggedIn && (

@@ -4,6 +4,7 @@ import "../globals.css";
 import { ConfigProvider } from 'antd';
 import zhCN from 'antd/locale/zh_CN';
 import { UserProvider } from "@/contexts/UserContext";
+import AuthLayoutClient from "@/components/AuthLayout";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -21,17 +22,25 @@ export const metadata: Metadata = {
   },
 };
 
-export default function RootLayout({
+export default function AuthLayout({
   children,
 }: Readonly<{
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="zh-CN">
-      <body className={inter.className}>
+    <html lang="zh-CN" className="auth-page">
+      <body className={`${inter.className} auth-page`} style={{ 
+        backgroundColor: '#f5f5f5',
+        overflowY: 'auto',
+        height: '100%',
+        msOverflowStyle: 'none',
+        scrollbarWidth: 'none'
+      }}>
         <ConfigProvider locale={zhCN}>
           <UserProvider>
-            {children}
+            <AuthLayoutClient>
+              {children}
+            </AuthLayoutClient>
           </UserProvider>
         </ConfigProvider>
       </body>

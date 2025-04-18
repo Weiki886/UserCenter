@@ -30,11 +30,33 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="zh-CN">
-      <body className={inter.className}>
+      <body className={inter.className} style={{ 
+        margin: 0, 
+        padding: 0, 
+        overflow: 'hidden',
+        maxWidth: '100vw',
+      }}>
         <ConfigProvider locale={zhCN}>
           <UserProvider>
-            <div style={{ display: 'flex', flexDirection: 'column', minHeight: '100vh' }}>
-              <div style={{ flex: '1 0 auto' }}>
+            <div style={{ 
+              display: 'flex', 
+              flexDirection: 'column', 
+              minHeight: '100vh', 
+              width: '100%',
+              maxWidth: '100vw',
+              margin: 0, 
+              padding: 0,
+              overflow: 'hidden',
+            }}>
+              <div style={{ 
+                flex: '1 0 auto', 
+                width: '100%', 
+                maxWidth: '100vw',
+                margin: 0, 
+                padding: 0, 
+                overflow: 'hidden',
+                position: 'relative',
+              }}>
                 <ClientWrapper>
                   {children}
                 </ClientWrapper>

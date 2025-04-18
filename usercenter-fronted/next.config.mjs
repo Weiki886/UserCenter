@@ -17,7 +17,8 @@ const nextConfig = {
   experimental: {
     // 保留支持的优化配置
     optimizeCss: true,
-    optimizePackageImports: ['antd', '@ant-design/icons'],
+    // 禁用包优化以解决Ant Design导入问题
+    optimizePackageImports: [],
   },
   // 优化构建
   swcMinify: true,

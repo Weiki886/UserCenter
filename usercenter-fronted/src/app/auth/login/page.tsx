@@ -97,7 +97,7 @@ export default function LoginPage() {
       {contextHolder}
       <Card 
         className={styles.authCard}
-        title={<div className={styles.authTitle}>登录用户中心</div>}
+        title={<div className={styles.authTitle}>用户登录</div>}
       >
         <Form
           name="login_form"
